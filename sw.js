@@ -3,7 +3,7 @@
    Cache-first para assets estáticos, network-first para API
    ============================================================ */
 
-const CACHE_NAME   = 'precificaz-v4';
+const CACHE_NAME   = 'precificaz-v5';
 const API_ORIGIN   = 'script.google.com'; // GAS Web App
 
 const STATIC_ASSETS = [
@@ -53,15 +53,8 @@ self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
 
-  // Requisições ao GAS (backend): sempre network, sem cache
+  // Requisições ao GAS (backend): não interceptar para evitar bugs do Safari com POST
   if (url.hostname.includes(API_ORIGIN)) {
-    event.respondWith(
-      fetch(request).catch(() =>
-        new Response(JSON.stringify({ error: 'Sem conexão. Tente novamente.' }), {
-          headers: { 'Content-Type': 'application/json' }
-        })
-      )
-    );
     return;
   }
 
