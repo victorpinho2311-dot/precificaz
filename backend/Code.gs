@@ -3,12 +3,12 @@
  *
  * SETUP:
  * 1. Cole este código no Apps Script
- * 2. Substitua SPREADSHEET_ID pelo ID da sua planilha
+ * 2. O SPREADSHEET_ID já está preenchido
  * 3. Execute definirSenha() uma vez para configurar a senha
  * 4. Implante como App da Web: Executar como "Eu mesmo", Acesso "Qualquer pessoa"
  */
 
-const SPREADSHEET_ID = 'SEU_SPREADSHEET_ID_AQUI';
+const SPREADSHEET_ID = '1dLxowHGnZEyvEqR8q6TEWR8TH6NRo0BBkSwPsge5ZDc';
 const SENHA_HASH_KEY = 'precificaz_senha_hash';
 
 const SHEETS = {
@@ -20,9 +20,6 @@ const SHEETS = {
 };
 
 // ── ENTRY POINTS ──────────────────────────────────────────────
-// GAS não suporta CORS em doPost, então usamos doGet com parâmetros
-// O frontend envia tudo via GET (query string) para evitar bloqueio CORS
-
 function doGet(e) {
   const params = e.parameter || {};
   const action = params.action || '';
@@ -35,7 +32,7 @@ function doGet(e) {
     }
 
     switch (action) {
-      case 'ping':              return jsonResponse({ ok: true, message: 'Precificaz API online 🌿' });
+      case 'ping':              return jsonResponse({ ok: true, message: 'Precificaz API online' });
       case 'login':             return handleLogin(params);
       case 'getMateriais':      return handleGetMateriais();
       case 'saveMaterial':      return handleSaveMaterial(params);
@@ -50,7 +47,7 @@ function doGet(e) {
       case 'getPrecos':         return handleGetPrecos();
       case 'getDashboard':      return handleGetDashboard();
       default:
-        return jsonResponse({ ok: false, error: `Ação desconhecida: ${action}` });
+        return jsonResponse({ ok: false, error: 'Ação desconhecida: ' + action });
     }
   } catch (err) {
     console.error('PRECIFICAZ ERROR:', err.toString());
@@ -58,9 +55,18 @@ function doGet(e) {
   }
 }
 
-// Manter doPost também por compatibilidade
 function doPost(e) {
   return doGet(e);
+}
+
+// ── SENHA ─────────────────────────────────────────────────────
+// Execute esta função UMA VEZ para definir/redefinir a senha
+function definirSenha() {
+  const NOVA_SENHA = 'bebezinha'; // ← senha de acesso ao app
+  const hash = Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, NOVA_SENHA)
+    .map(b => ('0' + (b & 0xFF).toString(16)).slice(-2)).join('');
+  PropertiesService.getScriptProperties().setProperty(SENHA_HASH_KEY, hash);
+  Logger.log('✅ Senha definida! Hash: ' + hash);
 }
 
 // ── AUTENTICAÇÃO ──────────────────────────────────────────────
@@ -85,7 +91,7 @@ function handleLogin(params) {
 
 function criarToken() {
   const token  = Utilities.getUuid();
-  const expiry = Date.now() + (7 * 24 * 60 * 60 * 1000); // 7 dias
+  const expiry = Date.now() + (7 * 24 * 60 * 60 * 1000);
   const sheet  = getOrCreateSheet(SHEETS.SESSOES, ['token', 'expiry']);
   sheet.appendRow([token, expiry]);
   return token;
@@ -103,23 +109,6 @@ function validarToken(token) {
   return false;
 }
 
-// Execute esta função UMA VEZ para definir a senha
-function definirSenha() {
-  const NOVA_SENHA = 'precificaz123'; // ← ALTERE AQUI antes de rodar
-  const hash = Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, NOVA_SENHA)
-    .map(b => ('0' + (b & 0xFF).toString(16)).slice(-2)).join('');
-  PropertiesService.getScriptProperties().setProperty(SENHA_HASH_KEY, hash);
-  Logger.log('✅ Senha definida com sucesso! Hash: ' + hash);
-}
-
-// Para verificar se a senha foi salva corretamente
-function verificarSenha() {
-  const hash = PropertiesService.getScriptProperties().getProperty(SENHA_HASH_KEY);
-  Logger.log('Hash salvo: ' + hash);
-  if (!hash) Logger.log('❌ Nenhuma senha configurada!');
-  else Logger.log('✅ Senha configurada.');
-}
-
 // ── MATERIAIS ─────────────────────────────────────────────────
 function handleGetMateriais() {
   const sheet = getOrCreateSheet(SHEETS.MATERIAIS,
@@ -133,12 +122,9 @@ function handleSaveMaterial(params) {
     ['id','nome','categoria','preco','unidade','qtd','fornecedor','obs','foto','criadoEm']);
   const row   = findRowById(sheet, mat.id);
   const now   = new Date().toISOString();
-  const values = [
-    mat.id, mat.nome || '', mat.categoria || '',
-    mat.preco || 0, mat.unidade || '', mat.qtd || 0,
-    mat.fornecedor || '', mat.obs || '', mat.foto || '',
-    row ? sheet.getRange(row, 10).getValue() : now
-  ];
+  const values = [mat.id, mat.nome||'', mat.categoria||'', mat.preco||0, mat.unidade||'',
+    mat.qtd||0, mat.fornecedor||'', mat.obs||'', mat.foto||'',
+    row ? sheet.getRange(row, 10).getValue() : now];
   if (row) sheet.getRange(row, 1, 1, values.length).setValues([values]);
   else     sheet.appendRow(values);
   return jsonResponse({ ok: true });
@@ -164,12 +150,9 @@ function handleSavePeca(params) {
     ['id','nome','categoria','desc','horas','valorHora','materiais','custoTotal','foto','criadoEm']);
   const row   = findRowById(sheet, peca.id);
   const now   = new Date().toISOString();
-  const values = [
-    peca.id, peca.nome || '', peca.categoria || '', peca.desc || '',
-    peca.horas || 0, peca.valorHora || 0,
-    peca.materiais || '[]', peca.custoTotal || 0, peca.foto || '',
-    row ? sheet.getRange(row, 10).getValue() : now
-  ];
+  const values = [peca.id, peca.nome||'', peca.categoria||'', peca.desc||'',
+    peca.horas||0, peca.valorHora||0, peca.materiais||'[]', peca.custoTotal||0,
+    peca.foto||'', row ? sheet.getRange(row, 10).getValue() : now];
   if (row) sheet.getRange(row, 1, 1, values.length).setValues([values]);
   else     sheet.appendRow(values);
   return jsonResponse({ ok: true });
@@ -193,11 +176,8 @@ function handleMovimentarEstoque(params) {
   const mov   = JSON.parse(decodeURIComponent(params.data || '{}'));
   const sheet = getOrCreateSheet(SHEETS.ESTOQUE,
     ['id','tipo','materialId','quantidade','data','obs','registradoEm']);
-  sheet.appendRow([
-    mov.id, mov.tipo, mov.materialId,
-    mov.quantidade, mov.data, mov.obs || '',
-    new Date().toISOString()
-  ]);
+  sheet.appendRow([mov.id, mov.tipo, mov.materialId, mov.quantidade,
+    mov.data, mov.obs||'', new Date().toISOString()]);
   return jsonResponse({ ok: true });
 }
 
@@ -207,32 +187,25 @@ function handleCalcularCusto(params) {
   const matSheet  = getOrCreateSheet(SHEETS.MATERIAIS, []);
   const pecaRow   = findRowById(pecaSheet, params.pecaId);
   if (!pecaRow) return jsonResponse({ ok: false, error: 'Peça não encontrada.' });
-
   const peca    = rowToObject(pecaSheet, pecaRow);
   const mats    = JSON.parse(peca.materiais || '[]');
   const allMats = sheetToObjects(matSheet);
-
   let custoMats = 0;
   mats.forEach(item => {
     const mat = allMats.find(m => m.id === item.materialId);
-    if (mat) custoMats += (parseFloat(mat.preco) || 0) * (parseFloat(item.quantidade) || 0);
+    if (mat) custoMats += (parseFloat(mat.preco)||0) * (parseFloat(item.quantidade)||0);
   });
-
-  const custoMO    = (parseFloat(peca.horas) || 0) * (parseFloat(peca.valorHora) || 0);
-  const custoTotal = custoMats + custoMO;
-  return jsonResponse({ ok: true, custoMats, custoMO, custoTotal });
+  const custoMO    = (parseFloat(peca.horas)||0) * (parseFloat(peca.valorHora)||0);
+  return jsonResponse({ ok: true, custoMats, custoMO, custoTotal: custoMats + custoMO });
 }
 
 function handleSalvarPreco(params) {
   const preco = JSON.parse(decodeURIComponent(params.data || '{}'));
   const sheet = getOrCreateSheet(SHEETS.PRECOS,
     ['id','pecaId','pecaNome','custoTotal','outros','margem','taxa','precoFinal','data','criadoEm']);
-  sheet.appendRow([
-    preco.id, preco.pecaId, preco.pecaNome,
-    preco.custoTotal, preco.outros, preco.margem,
-    preco.taxa, preco.precoFinal, preco.data,
-    new Date().toISOString()
-  ]);
+  sheet.appendRow([preco.id, preco.pecaId, preco.pecaNome, preco.custoTotal,
+    preco.outros, preco.margem, preco.taxa, preco.precoFinal, preco.data,
+    new Date().toISOString()]);
   return jsonResponse({ ok: true });
 }
 
@@ -273,13 +246,11 @@ function sheetToObjects(sheet) {
   if (sheet.getLastRow() < 2) return [];
   const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
   const rows    = sheet.getRange(2, 1, sheet.getLastRow() - 1, sheet.getLastColumn()).getValues();
-  return rows
-    .map(row => {
-      const obj = {};
-      headers.forEach((h, i) => { obj[h] = row[i]; });
-      return obj;
-    })
-    .filter(obj => obj.id);
+  return rows.map(row => {
+    const obj = {};
+    headers.forEach((h, i) => { obj[h] = row[i]; });
+    return obj;
+  }).filter(obj => obj.id);
 }
 
 function rowToObject(sheet, rowNum) {
