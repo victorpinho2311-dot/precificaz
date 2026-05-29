@@ -10,26 +10,28 @@ const API = (() => {
   async function request(action, payload = {}, method = 'GET') {
     const token = (typeof Auth !== 'undefined') ? Auth.getToken() : '';
 
-    const params = new URLSearchParams({ action, token: token || '' });
-
-    Object.entries(payload).forEach(([key, val]) => {
-      params.set(key, typeof val === 'object' ? JSON.stringify(val) : String(val));
-    });
-
     try {
       // Gravações vão por POST: fotos em base64 estouram o limite de URL do GET.
       // O GAS executa doPost, devolve 302 e o browser segue como GET (CORS liberado).
-      const res = method === 'POST'
-        ? await fetch(GAS_URL, {
-            method: 'POST',
-            redirect: 'follow',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: params.toString(),
-          })
-        : await fetch(`${GAS_URL}?${params.toString()}`, {
-            method: 'GET',
-            redirect: 'follow',
-          });
+      let res;
+      if (method === 'POST') {
+        const url = `${GAS_URL}?action=${encodeURIComponent(action)}&token=${encodeURIComponent(token || '')}`;
+        res = await fetch(url, {
+          method: 'POST',
+          redirect: 'follow',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify(payload),
+        });
+      } else {
+        const params = new URLSearchParams({ action, token: token || '' });
+        Object.entries(payload).forEach(([key, val]) => {
+          params.set(key, typeof val === 'object' ? JSON.stringify(val) : String(val));
+        });
+        res = await fetch(`${GAS_URL}?${params.toString()}`, {
+          method: 'GET',
+          redirect: 'follow',
+        });
+      }
 
       const text = await res.text();
 

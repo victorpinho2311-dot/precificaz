@@ -215,6 +215,34 @@
   pointer-events: none;
 }
 
+.photo-upload__remove {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--color-destructive);
+  color: #fff;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--shadow-soft);
+  cursor: pointer;
+  z-index: 10;
+  border: 2px solid var(--color-bg);
+  transition: all var(--transition-fast);
+}
+
+.photo-upload__remove:hover {
+  transform: scale(1.1);
+  background: #bd5e50;
+}
+
+.photo-upload__remove:active {
+  transform: scale(0.9);
+}
+
 /* ── BADGES ──────────────────────────────────────────────── */
 .badge {
   display: inline-flex;

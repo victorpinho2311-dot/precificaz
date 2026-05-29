@@ -155,7 +155,7 @@ small {
 /* --- Toast notifications --- */
 #toast-container {
   position: fixed;
-  bottom: calc(var(--space-6) + env(safe-area-inset-bottom));
+  top: calc(var(--space-6) + env(safe-area-inset-top));
   left: 50%;
   transform: translateX(-50%);
   z-index: var(--z-toast);
@@ -182,6 +182,6 @@ small {
 .toast--info    { background: var(--color-fg);         color: var(--color-bg); }
 
 @keyframes toastIn {
-  from { opacity: 0; transform: translateY(12px); }
+  from { opacity: 0; transform: translateY(-12px); }
   to   { opacity: 1; transform: translateY(0); }
 }

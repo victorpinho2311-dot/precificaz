@@ -45,11 +45,16 @@
     <form id="peca-form" onsubmit="PecasPage.salvar(event)">
       <!-- Foto -->
       <div style="display:flex;justify-content:center;margin-bottom:var(--space-5);">
-        <label class="photo-upload" id="peca-photo-label">
-          <input type="file" accept="image/*" id="peca-photo-input" onchange="PecasPage.previewFoto(this)" />
-          <i data-lucide="camera" width="24" height="24" style="color:var(--color-muted-fg);" id="peca-camera-icon"></i>
-          <span class="photo-upload__label">Foto da peça</span>
-        </label>
+        <div class="photo-upload-container" style="position:relative;width:100%;max-width:160px;">
+          <label class="photo-upload" id="peca-photo-label" style="margin:0;">
+            <input type="file" accept="image/*" id="peca-photo-input" onchange="PecasPage.previewFoto(this)" />
+            <i data-lucide="camera" width="24" height="24" style="color:var(--color-muted-fg);" id="peca-camera-icon"></i>
+            <span class="photo-upload__label">Foto da peça</span>
+          </label>
+          <button type="button" class="photo-upload__remove" id="peca-photo-remove" style="display:none;" onclick="PecasPage.removerFoto(event)">
+            <i data-lucide="trash-2" width="16" height="16"></i>
+          </button>
+        </div>
       </div>
 
       <div style="display:flex;flex-direction:column;gap:var(--space-4);">
@@ -204,6 +209,9 @@ window.PecasPage = (() => {
         if (!img) { img = document.createElement('img'); label.appendChild(img); }
         img.src = p.foto;
         document.getElementById('peca-foto-base64').value = p.foto;
+        document.getElementById('peca-photo-remove').style.display = 'flex';
+        const icon = document.getElementById('peca-camera-icon');
+        if (icon) icon.style.display = 'none';
       }
     } else {
       title.textContent = 'Nova Peça';
@@ -227,6 +235,9 @@ window.PecasPage = (() => {
     const label = document.getElementById('peca-photo-label');
     const img = label.querySelector('img');
     if (img) img.remove();
+    const icon = document.getElementById('peca-camera-icon');
+    if (icon) icon.style.display = '';
+    document.getElementById('peca-photo-remove').style.display = 'none';
     matsPeca = [];
     renderMatsPeca();
   }
@@ -243,10 +254,26 @@ window.PecasPage = (() => {
       img.src = base64;
       const icon = document.getElementById('peca-camera-icon');
       if (icon) icon.style.display = 'none';
+      document.getElementById('peca-photo-remove').style.display = 'flex';
     } catch {
       input.value = '';
       Utils.toast('Não foi possível carregar a imagem. Tente outra foto.', 'error');
     }
+  }
+
+  function removerFoto(e) {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    document.getElementById('peca-foto-base64').value = '';
+    document.getElementById('peca-photo-input').value = '';
+    const label = document.getElementById('peca-photo-label');
+    const img = label.querySelector('img');
+    if (img) img.remove();
+    const icon = document.getElementById('peca-camera-icon');
+    if (icon) icon.style.display = '';
+    document.getElementById('peca-photo-remove').style.display = 'none';
   }
 
   function adicionarMaterial() {
@@ -335,6 +362,6 @@ window.PecasPage = (() => {
     }
   }
 
-  return { abrirModal, fecharModal, salvar, filtrar, previewFoto, adicionarMaterial, removerMaterial, updateMat };
+  return { abrirModal, fecharModal, salvar, filtrar, previewFoto, adicionarMaterial, removerMaterial, updateMat, removerFoto };
 })();
 </script>

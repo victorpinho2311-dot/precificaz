@@ -66,7 +66,7 @@
   --z-base:    0;
   --z-raised:  10;
   --z-overlay: 100;
-  --z-modal:   200;
-  --z-toast:   300;
-  --z-nav:     400;
+  --z-nav:     200;
+  --z-modal:   400;
+  --z-toast:   500;
 }

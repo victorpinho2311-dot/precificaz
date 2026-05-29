@@ -21,7 +21,27 @@ const SHEETS = {
 
 // ── ENTRY POINTS ──────────────────────────────────────────────
 function doGet(e) {
-  const params = e.parameter || {};
+  const params = {};
+  if (e && e.parameter) {
+    Object.keys(e.parameter).forEach(key => {
+      params[key] = e.parameter[key];
+    });
+  }
+
+  if (e && e.postData && e.postData.contents) {
+    try {
+      const postBody = JSON.parse(e.postData.contents);
+      if (postBody && typeof postBody === 'object') {
+        Object.keys(postBody).forEach(key => {
+          const val = postBody[key];
+          params[key] = typeof val === 'object' ? JSON.stringify(val) : String(val);
+        });
+      }
+    } catch (err) {
+      console.warn("Could not parse postData contents as JSON:", err.toString());
+    }
+  }
+
   const action = params.action || '';
   const token  = params.token  || '';
   const PUBLIC_ACTIONS = ['login', 'ping'];
