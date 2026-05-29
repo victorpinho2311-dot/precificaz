@@ -1,33 +1,41 @@
 /* ============================================================
    PRECIFICAZ — API
-   Toda comunicação com o backend (Google Apps Script Web App)
-   Substitua GAS_URL pela URL gerada ao publicar o script.
+   Comunicação com o backend (Google Apps Script Web App)
+   Usa GET para evitar bloqueio de CORS do GAS
    ============================================================ */
 
 const API = (() => {
 
-  // ⚠️ Substituir após publicar o Google Apps Script
   const GAS_URL = 'https://script.google.com/macros/s/AKfycbwMbbUofp6xreEi6IH6PbOHgzvsIOUgaPD-_qXioVtDKywLrKTQnOFyAWcfR0mHtK2h2g/exec';
 
-  /* ── Request base ───────────────────────────────────────── */
+  /* ── Request base (GET com query string) ────────────────── */
   async function request(action, payload = {}) {
-    const token = Auth.getToken();
+    const token = Auth ? Auth.getToken() : '';
 
-    const body = new URLSearchParams({
+    const params = new URLSearchParams({
       action,
       token: token || '',
-      ...payload
+    });
+
+    // Adicionar payload (objetos viram JSON encoded)
+    Object.entries(payload).forEach(([key, val]) => {
+      params.set(key, typeof val === 'object' ? encodeURIComponent(JSON.stringify(val)) : val);
     });
 
     try {
-      const res = await fetch(GAS_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: body.toString()
+      const res = await fetch(`${GAS_URL}?${params.toString()}`, {
+        method: 'GET',
       });
 
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = await res.json();
+
+      const text = await res.text();
+      let data;
+      try {
+        data = JSON.parse(text);
+      } catch {
+        throw new Error('Resposta inválida do servidor');
+      }
 
       if (!data.ok) throw new Error(data.error || 'Erro desconhecido');
       return data;
@@ -49,7 +57,7 @@ const API = (() => {
   }
 
   async function saveMaterial(material) {
-    return request('saveMaterial', { data: JSON.stringify(material) });
+    return request('saveMaterial', { data: material });
   }
 
   async function deleteMaterial(id) {
@@ -62,7 +70,7 @@ const API = (() => {
   }
 
   async function savePeca(peca) {
-    return request('savePeca', { data: JSON.stringify(peca) });
+    return request('savePeca', { data: peca });
   }
 
   async function deletePeca(id) {
@@ -75,7 +83,7 @@ const API = (() => {
   }
 
   async function movimentarEstoque(mov) {
-    return request('movimentarEstoque', { data: JSON.stringify(mov) });
+    return request('movimentarEstoque', { data: mov });
   }
 
   /* ── Precificação ───────────────────────────────────────── */
@@ -84,21 +92,16 @@ const API = (() => {
   }
 
   async function salvarPreco(pricing) {
-    return request('salvarPreco', { data: JSON.stringify(pricing) });
+    return request('salvarPreco', { data: pricing });
   }
 
   async function getPrecos() {
     return request('getPrecos');
   }
 
-  /* ── Dashboard stats ────────────────────────────────────── */
+  /* ── Dashboard ──────────────────────────────────────────── */
   async function getDashboard() {
     return request('getDashboard');
-  }
-
-  /* ── Upload de imagem (base64 via GAS) ──────────────────── */
-  async function uploadImagem(base64, nome) {
-    return request('uploadImagem', { base64, nome });
   }
 
   return {
@@ -108,6 +111,5 @@ const API = (() => {
     getEstoque,   movimentarEstoque,
     calcularCusto, salvarPreco, getPrecos,
     getDashboard,
-    uploadImagem,
   };
 })();
