@@ -1,0 +1,18 @@
+# Sistema
+.DS_Store
+Thumbs.db
+*.log
+
+# Temporários
+*.tmp
+*.swp
+
+# Dependências (não há nenhuma neste projeto, mas por precaução)
+node_modules/
+
+# Configurações de editor
+.vscode/
+.idea/
+
+# Segurança — nunca commitar senhas ou IDs sensíveis
+# (lembre de substituir os placeholders antes do push)

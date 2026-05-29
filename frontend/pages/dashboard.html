@@ -1,0 +1,91 @@
+<!-- ============================================================
+     PRECIFICAZ — Dashboard
+     ============================================================ -->
+<div class="page-header">
+  <div>
+    <h1 class="page-header__title">Olá 👋</h1>
+    <p style="font-size:var(--text-sm);color:var(--color-muted-fg);margin-top:2px;" id="dash-user"></p>
+  </div>
+  <button class="btn btn--ghost btn--sm" onclick="Auth.logout()">
+    <i data-lucide="log-out" width="16" height="16"></i>
+  </button>
+</div>
+
+<div class="page-content">
+  <!-- Stats -->
+  <div class="stat-grid" id="dash-stats">
+    <div class="stat-card">
+      <div class="stat-card__label">Materiais</div>
+      <div class="stat-card__value" id="stat-materiais">—</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-card__label">Peças</div>
+      <div class="stat-card__value" id="stat-pecas">—</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-card__label">Itens em estoque</div>
+      <div class="stat-card__value" id="stat-estoque">—</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-card__label">Peças precificadas</div>
+      <div class="stat-card__value" id="stat-precos">—</div>
+    </div>
+  </div>
+
+  <!-- Atalhos -->
+  <h2 style="font-size:var(--text-lg);font-weight:700;margin-bottom:var(--space-3);">
+    Acesso rápido
+  </h2>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--space-3);margin-bottom:var(--space-6);">
+    <button class="card card--hover" style="text-align:left;cursor:pointer;border:none;" onclick="Router.go('materiais')">
+      <div style="margin-bottom:var(--space-3);width:40px;height:40px;border-radius:var(--radius-md);background:rgba(93,112,82,0.12);display:flex;align-items:center;justify-content:center;color:var(--color-primary);">
+        <i data-lucide="scissors" width="20" height="20"></i>
+      </div>
+      <div style="font-weight:700;font-size:var(--text-sm);">Materiais</div>
+      <div style="font-size:var(--text-xs);color:var(--color-muted-fg);margin-top:2px;">Tecidos, ziperes, etc</div>
+    </button>
+
+    <button class="card card--hover" style="text-align:left;cursor:pointer;border:none;" onclick="Router.go('pecas')">
+      <div style="margin-bottom:var(--space-3);width:40px;height:40px;border-radius:var(--radius-md);background:rgba(193,140,93,0.12);display:flex;align-items:center;justify-content:center;color:var(--color-secondary);">
+        <i data-lucide="package" width="20" height="20"></i>
+      </div>
+      <div style="font-weight:700;font-size:var(--text-sm);">Peças</div>
+      <div style="font-size:var(--text-xs);color:var(--color-muted-fg);margin-top:2px;">Bolsas, nécessaires...</div>
+    </button>
+
+    <button class="card card--hover" style="text-align:left;cursor:pointer;border:none;" onclick="Router.go('estoque')">
+      <div style="margin-bottom:var(--space-3);width:40px;height:40px;border-radius:var(--radius-md);background:rgba(93,112,82,0.12);display:flex;align-items:center;justify-content:center;color:var(--color-primary);">
+        <i data-lucide="archive" width="20" height="20"></i>
+      </div>
+      <div style="font-weight:700;font-size:var(--text-sm);">Estoque</div>
+      <div style="font-size:var(--text-xs);color:var(--color-muted-fg);margin-top:2px;">Entradas e saídas</div>
+    </button>
+
+    <button class="card card--hover" style="text-align:left;cursor:pointer;border:none;" onclick="Router.go('precificacao')">
+      <div style="margin-bottom:var(--space-3);width:40px;height:40px;border-radius:var(--radius-md);background:rgba(193,140,93,0.12);display:flex;align-items:center;justify-content:center;color:var(--color-secondary);">
+        <i data-lucide="tag" width="20" height="20"></i>
+      </div>
+      <div style="font-weight:700;font-size:var(--text-sm);">Precificação</div>
+      <div style="font-size:var(--text-xs);color:var(--color-muted-fg);margin-top:2px;">Calcular preços</div>
+    </button>
+  </div>
+</div>
+
+<script>
+  document.addEventListener('pageLoaded', async (e) => {
+    if (e.detail.page !== 'dashboard') return;
+
+    document.getElementById('dash-user').textContent = `Bem-vindo, ${Auth.getUser()}`;
+
+    try {
+      const data = await API.getDashboard();
+      document.getElementById('stat-materiais').textContent = data.materiais ?? '0';
+      document.getElementById('stat-pecas').textContent     = data.pecas     ?? '0';
+      document.getElementById('stat-estoque').textContent   = data.estoque   ?? '0';
+      document.getElementById('stat-precos').textContent    = data.precos    ?? '0';
+    } catch {
+      // stats ficam com —
+    }
+  }, { once: true });
+</script>
