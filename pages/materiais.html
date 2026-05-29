@@ -70,16 +70,6 @@
           <label class="form-label">Categoria</label>
           <select class="form-select" id="mat-categoria">
             <option value="">Selecionar...</option>
-            <option>Tecido</option>
-            <option>Ziper</option>
-            <option>Manta</option>
-            <option>Alça</option>
-            <option>Forro</option>
-            <option>Botão</option>
-            <option>Elástico</option>
-            <option>Linha</option>
-            <option>Entretela</option>
-            <option>Outros</option>
           </select>
         </div>
 
@@ -136,8 +126,10 @@
 window.MateriaisPage = (() => {
   let materiais = [];
   let filtrado  = [];
+  let listenersOk = false;
+  let blockClick  = false;
+  let pressTimer  = null;
 
-  /* Inicialização */
   document.addEventListener('pageLoaded', async (e) => {
     if (e.detail.page !== 'materiais') return;
     await carregar();
@@ -146,7 +138,7 @@ window.MateriaisPage = (() => {
   async function carregar() {
     try {
       const res = await API.getMateriais();
-      materiais = res.data || [];
+      materiais = (res.data || []).sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
       filtrado  = [...materiais];
       renderizar();
     } catch {
@@ -163,11 +155,12 @@ window.MateriaisPage = (() => {
           <div class="empty-state__title">Nenhum material</div>
           <div class="empty-state__desc">Toque em + para cadastrar seu primeiro material</div>
         </div>`;
+      Utils.refreshIcons();
       return;
     }
 
     lista.innerHTML = filtrado.map(m => `
-      <div class="list-item" onclick="MateriaisPage.abrirModal('${m.id}')">
+      <div class="list-item" data-id="${m.id}">
         ${m.foto
           ? `<img class="list-item__photo" src="${m.foto}" alt="${Utils.escapeHtml(m.nome)}" />`
           : `<div class="list-item__photo" style="display:flex;align-items:center;justify-content:center;color:var(--color-muted-fg);">
@@ -186,6 +179,36 @@ window.MateriaisPage = (() => {
     `).join('');
 
     Utils.refreshIcons();
+    if (!listenersOk) { setupListeners(); listenersOk = true; }
+  }
+
+  function setupListeners() {
+    const lista = document.getElementById('mat-lista');
+    if (!lista) return;
+
+    lista.addEventListener('click', (e) => {
+      if (blockClick) { blockClick = false; return; }
+      const item = e.target.closest('[data-id]');
+      if (item) abrirModal(item.dataset.id);
+    });
+
+    lista.addEventListener('touchstart', (e) => {
+      const item = e.target.closest('[data-id]');
+      if (!item) return;
+      pressTimer = setTimeout(() => {
+        blockClick = true;
+        const id   = item.dataset.id;
+        const nome = materiais.find(x => x.id === id)?.nome || '';
+        ActionSheet.show(nome, [
+          { label: 'Editar',    icon: 'edit-2', action: `MateriaisPage.abrirModal('${id}'); ActionSheet.hide();` },
+          { label: 'Duplicar',  icon: 'copy',   action: `MateriaisPage.duplicar('${id}'); ActionSheet.hide();` },
+        ]);
+      }, 600);
+    }, { passive: true });
+
+    lista.addEventListener('touchend',    () => clearTimeout(pressTimer));
+    lista.addEventListener('touchcancel', () => clearTimeout(pressTimer));
+    lista.addEventListener('touchmove',   () => clearTimeout(pressTimer));
   }
 
   function filtrar(texto) {
@@ -193,38 +216,61 @@ window.MateriaisPage = (() => {
     renderizar();
   }
 
+  function _preencherForm(m, novoId) {
+    document.getElementById('mat-id').value         = novoId || m.id;
+    document.getElementById('mat-nome').value       = m.nome || '';
+    document.getElementById('mat-preco').value      = m.preco || '';
+    document.getElementById('mat-unidade').value    = m.unidade || 'unidade';
+    document.getElementById('mat-qtd').value        = m.qtd || '';
+    document.getElementById('mat-fornecedor').value = m.fornecedor || '';
+    document.getElementById('mat-obs').value        = m.obs || '';
+
+    const cats = Utils.getCategorias('materiais');
+    const sel  = document.getElementById('mat-categoria');
+    sel.innerHTML = '<option value="">Selecionar...</option>' +
+      cats.map(c => `<option value="${c}" ${c === (m.categoria||'') ? 'selected' : ''}>${Utils.escapeHtml(c)}</option>`).join('');
+
+    if (m.foto) {
+      const label = document.getElementById('mat-photo-label');
+      let img = label.querySelector('img');
+      if (!img) { img = document.createElement('img'); label.appendChild(img); }
+      img.src = m.foto;
+      document.getElementById('mat-foto-base64').value = m.foto;
+      document.getElementById('mat-photo-remove').style.display = 'flex';
+      const icon = document.getElementById('mat-camera-icon');
+      if (icon) icon.style.display = 'none';
+    }
+  }
+
   function abrirModal(id = null) {
     resetForm();
-    const modal = document.getElementById('mat-modal');
     const title = document.getElementById('mat-modal-title');
 
     if (id) {
       const m = materiais.find(x => x.id === id);
       if (!m) return;
       title.textContent = 'Editar Material';
-      document.getElementById('mat-id').value        = m.id;
-      document.getElementById('mat-nome').value      = m.nome || '';
-      document.getElementById('mat-categoria').value = m.categoria || '';
-      document.getElementById('mat-preco').value     = m.preco || '';
-      document.getElementById('mat-unidade').value   = m.unidade || 'unidade';
-      document.getElementById('mat-qtd').value       = m.qtd || '';
-      document.getElementById('mat-fornecedor').value= m.fornecedor || '';
-      document.getElementById('mat-obs').value       = m.obs || '';
-      if (m.foto) {
-        const label = document.getElementById('mat-photo-label');
-        let img = label.querySelector('img');
-        if (!img) { img = document.createElement('img'); label.appendChild(img); }
-        img.src = m.foto;
-        document.getElementById('mat-foto-base64').value = m.foto;
-        document.getElementById('mat-photo-remove').style.display = 'flex';
-        const icon = document.getElementById('mat-camera-icon');
-        if (icon) icon.style.display = 'none';
-      }
+      _preencherForm(m);
     } else {
       title.textContent = 'Novo Material';
+      const cats = Utils.getCategorias('materiais');
+      const sel  = document.getElementById('mat-categoria');
+      sel.innerHTML = '<option value="">Selecionar...</option>' +
+        cats.map(c => `<option value="${c}">${Utils.escapeHtml(c)}</option>`).join('');
     }
 
-    modal.classList.add('open');
+    document.getElementById('mat-modal').classList.add('open');
+    Utils.refreshIcons();
+  }
+
+  function duplicar(id) {
+    const original = materiais.find(x => x.id === id);
+    if (!original) return;
+    resetForm();
+    document.getElementById('mat-modal-title').textContent = 'Duplicar Material';
+    _preencherForm(original, Utils.uid());
+    document.getElementById('mat-nome').value = (original.nome || '') + ' (cópia)';
+    document.getElementById('mat-modal').classList.add('open');
     Utils.refreshIcons();
   }
 
@@ -265,10 +311,7 @@ window.MateriaisPage = (() => {
   }
 
   function removerFoto(e) {
-    if (e) {
-      e.preventDefault();
-      e.stopPropagation();
-    }
+    if (e) { e.preventDefault(); e.stopPropagation(); }
     document.getElementById('mat-foto-base64').value = '';
     document.getElementById('mat-photo-input').value = '';
     const label = document.getElementById('mat-photo-label');
@@ -285,15 +328,15 @@ window.MateriaisPage = (() => {
     btn.disabled = true;
 
     const material = {
-      id:          document.getElementById('mat-id').value || Utils.uid(),
-      nome:        document.getElementById('mat-nome').value,
-      categoria:   document.getElementById('mat-categoria').value,
-      preco:       parseFloat(document.getElementById('mat-preco').value) || 0,
-      unidade:     document.getElementById('mat-unidade').value,
-      qtd:         parseFloat(document.getElementById('mat-qtd').value) || 0,
-      fornecedor:  document.getElementById('mat-fornecedor').value,
-      obs:         document.getElementById('mat-obs').value,
-      foto:        document.getElementById('mat-foto-base64').value,
+      id:         document.getElementById('mat-id').value || Utils.uid(),
+      nome:       document.getElementById('mat-nome').value,
+      categoria:  document.getElementById('mat-categoria').value,
+      preco:      parseFloat(document.getElementById('mat-preco').value) || 0,
+      unidade:    document.getElementById('mat-unidade').value,
+      qtd:        parseFloat(document.getElementById('mat-qtd').value) || 0,
+      fornecedor: document.getElementById('mat-fornecedor').value,
+      obs:        document.getElementById('mat-obs').value,
+      foto:       document.getElementById('mat-foto-base64').value,
     };
 
     try {
@@ -308,6 +351,6 @@ window.MateriaisPage = (() => {
     }
   }
 
-  return { abrirModal, fecharModal, salvar, filtrar, previewFoto, removerFoto };
+  return { abrirModal, duplicar, fecharModal, salvar, filtrar, previewFoto, removerFoto };
 })();
 </script>

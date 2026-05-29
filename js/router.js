@@ -5,7 +5,7 @@
 
 const Router = (() => {
 
-  const PROTECTED_PAGES = ['dashboard', 'materiais', 'pecas', 'estoque', 'precificacao'];
+  const PROTECTED_PAGES = ['dashboard', 'materiais', 'pecas', 'estoque', 'precificacao', 'perfil'];
   const PUBLIC_PAGES    = ['login'];
 
   let currentPage = null;

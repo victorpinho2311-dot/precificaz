@@ -140,6 +140,25 @@ const Utils = (() => {
     if (window.lucide) lucide.createIcons();
   }
 
+  /* ── Categorias (localStorage) ─────────────────────────── */
+  const CAT_DEFAULTS = {
+    materiais: ['Alça','Botão','Elástico','Entretela','Forro','Linha','Manta','Outros','Tecido','Ziper'],
+    pecas:     ['Bolsa','Carteira','Estojo','Mochila','Nécessaire','Outros','Porta-documentos','Toalha'],
+  };
+
+  function getCategorias(tipo) {
+    try {
+      const saved = JSON.parse(localStorage.getItem(`pz_cat_${tipo}`));
+      return Array.isArray(saved) ? saved : [...CAT_DEFAULTS[tipo]];
+    } catch {
+      return [...CAT_DEFAULTS[tipo]];
+    }
+  }
+
+  function setCategorias(tipo, lista) {
+    localStorage.setItem(`pz_cat_${tipo}`, JSON.stringify(lista));
+  }
+
   /* ── Número para unidade de medida ─────────────────────── */
   const UNIDADES = {
     metro:     'm',
@@ -174,5 +193,7 @@ const Utils = (() => {
     refreshIcons,
     getUnidades,
     UNIDADES,
+    getCategorias,
+    setCategorias,
   };
 })();

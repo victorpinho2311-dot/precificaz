@@ -65,7 +65,21 @@
         </span>
         <span class="tab-item__label">Preço</span>
       </button>
+      <button class="tab-item" data-page="perfil" onclick="Router.go('perfil')">
+        <span class="tab-item__icon">
+          <i data-lucide="user-circle" width="22" height="22"></i>
+        </span>
+        <span class="tab-item__label">Perfil</span>
+      </button>
     </nav>
+  </div>
+
+  <!-- Global Action Sheet -->
+  <div class="action-sheet-backdrop" id="action-sheet-backdrop" onclick="ActionSheet.hide()">
+    <div class="action-sheet" onclick="event.stopPropagation()">
+      <div class="action-sheet__handle"></div>
+      <div id="action-sheet-content"></div>
+    </div>
   </div>
 
   <!-- Toast container -->
@@ -76,6 +90,28 @@
 
   <!-- Scripts (ordem importa) -->
   <script src="js/utils.js"></script>
+  <script>
+  const ActionSheet = (() => {
+    function show(titulo, itens) {
+      const el = document.getElementById('action-sheet-content');
+      el.innerHTML =
+        (titulo ? `<div class="action-sheet__title">${Utils.escapeHtml(titulo)}</div>` : '') +
+        itens.map(item => `
+          <button class="action-sheet__btn" onclick="${item.action}">
+            <i data-lucide="${item.icon}" width="20" height="20" style="color:${item.color||'var(--color-primary)'};flex-shrink:0;"></i>
+            ${Utils.escapeHtml(item.label)}
+          </button>
+        `).join('') +
+        `<button class="action-sheet__btn action-sheet__btn--cancel" onclick="ActionSheet.hide()">Cancelar</button>`;
+      document.getElementById('action-sheet-backdrop').classList.add('open');
+      if (window.lucide) lucide.createIcons();
+    }
+    function hide() {
+      document.getElementById('action-sheet-backdrop').classList.remove('open');
+    }
+    return { show, hide };
+  })();
+  </script>
   <script src="js/api.js"></script>
   <script src="js/auth.js"></script>
   <script src="js/router.js"></script>

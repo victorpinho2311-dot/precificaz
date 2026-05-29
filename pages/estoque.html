@@ -156,10 +156,11 @@ window.EstoquePage = (() => {
     document.getElementById('est-form').reset();
     setTipo('entrada');
 
-    // Popular select de materiais
-    const sel = document.getElementById('est-material');
+    // Popular select de materiais (ordem alfabética)
+    const sel    = document.getElementById('est-material');
+    const sorted = [...materiais].sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
     sel.innerHTML = '<option value="">Selecionar material...</option>' +
-      materiais.map(m => `<option value="${m.id}">${Utils.escapeHtml(m.nome)} (${Utils.escapeHtml(m.unidade)})</option>`).join('');
+      sorted.map(m => `<option value="${m.id}">${Utils.escapeHtml(m.nome)} (${Utils.escapeHtml(m.unidade)})</option>`).join('');
 
     // Data padrão: hoje
     document.getElementById('est-data').value = new Date().toISOString().split('T')[0];
@@ -205,8 +206,9 @@ window.EstoquePage = (() => {
       Utils.toast('Movimentação registrada!', 'success');
       fecharModal();
       await carregar();
-    } catch {
-      Utils.toast('Erro ao registrar. Tente novamente.', 'error');
+    } catch (err) {
+      console.error('[EstoquePage] Erro ao salvar:', err);
+      Utils.toast('Erro ao registrar: ' + err.message, 'error');
     } finally {
       btn.disabled = false;
     }

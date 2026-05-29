@@ -67,14 +67,6 @@
           <label class="form-label">Categoria</label>
           <select class="form-select" id="peca-categoria">
             <option value="">Selecionar...</option>
-            <option>Bolsa</option>
-            <option>Nécessaire</option>
-            <option>Porta-documentos</option>
-            <option>Estojo</option>
-            <option>Carteira</option>
-            <option>Mochila</option>
-            <option>Toalha</option>
-            <option>Outros</option>
           </select>
         </div>
 
@@ -131,7 +123,10 @@ window.PecasPage = (() => {
   let pecas      = [];
   let materiais  = [];
   let filtrado   = [];
-  let matsPeca   = []; // materiais da peça em edição
+  let matsPeca   = [];
+  let listenersOk = false;
+  let blockClick  = false;
+  let pressTimer  = null;
 
   document.addEventListener('pageLoaded', async (e) => {
     if (e.detail.page !== 'pecas') return;
@@ -141,8 +136,8 @@ window.PecasPage = (() => {
   async function carregar() {
     try {
       const [resPecas, resMats] = await Promise.all([API.getPecas(), API.getMateriais()]);
-      pecas     = resPecas.data  || [];
-      materiais = resMats.data   || [];
+      pecas     = (resPecas.data || []).sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
+      materiais = (resMats.data  || []).sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
       filtrado  = [...pecas];
       renderizar();
     } catch {
@@ -159,11 +154,12 @@ window.PecasPage = (() => {
           <div class="empty-state__title">Nenhuma peça</div>
           <div class="empty-state__desc">Toque em + para cadastrar sua primeira peça</div>
         </div>`;
+      Utils.refreshIcons();
       return;
     }
 
     lista.innerHTML = filtrado.map(p => `
-      <div class="list-item" onclick="PecasPage.abrirModal('${p.id}')">
+      <div class="list-item" data-id="${p.id}">
         ${p.foto
           ? `<img class="list-item__photo" src="${p.foto}" alt="${Utils.escapeHtml(p.nome)}" />`
           : `<div class="list-item__photo" style="display:flex;align-items:center;justify-content:center;color:var(--color-muted-fg);">
@@ -179,6 +175,36 @@ window.PecasPage = (() => {
     `).join('');
 
     Utils.refreshIcons();
+    if (!listenersOk) { setupListeners(); listenersOk = true; }
+  }
+
+  function setupListeners() {
+    const lista = document.getElementById('peca-lista');
+    if (!lista) return;
+
+    lista.addEventListener('click', (e) => {
+      if (blockClick) { blockClick = false; return; }
+      const item = e.target.closest('[data-id]');
+      if (item) abrirModal(item.dataset.id);
+    });
+
+    lista.addEventListener('touchstart', (e) => {
+      const item = e.target.closest('[data-id]');
+      if (!item) return;
+      pressTimer = setTimeout(() => {
+        blockClick = true;
+        const id   = item.dataset.id;
+        const nome = pecas.find(x => x.id === id)?.nome || '';
+        ActionSheet.show(nome, [
+          { label: 'Editar',   icon: 'edit-2', action: `PecasPage.abrirModal('${id}'); ActionSheet.hide();` },
+          { label: 'Duplicar', icon: 'copy',   action: `PecasPage.duplicar('${id}'); ActionSheet.hide();` },
+        ]);
+      }, 600);
+    }, { passive: true });
+
+    lista.addEventListener('touchend',    () => clearTimeout(pressTimer));
+    lista.addEventListener('touchcancel', () => clearTimeout(pressTimer));
+    lista.addEventListener('touchmove',   () => clearTimeout(pressTimer));
   }
 
   function filtrar(texto) {
@@ -186,39 +212,63 @@ window.PecasPage = (() => {
     renderizar();
   }
 
+  function _carregarCatSelect(valorAtual) {
+    const cats = Utils.getCategorias('pecas');
+    const sel  = document.getElementById('peca-categoria');
+    sel.innerHTML = '<option value="">Selecionar...</option>' +
+      cats.map(c => `<option value="${c}" ${c === (valorAtual||'') ? 'selected' : ''}>${Utils.escapeHtml(c)}</option>`).join('');
+  }
+
+  function _preencherForm(p, novoId) {
+    document.getElementById('peca-id').value         = novoId || p.id;
+    document.getElementById('peca-nome').value       = p.nome || '';
+    document.getElementById('peca-desc').value       = p.desc || '';
+    document.getElementById('peca-horas').value      = p.horas || '';
+    document.getElementById('peca-valor-hora').value = p.valorHora || '';
+    _carregarCatSelect(p.categoria);
+    matsPeca = p.materiais ? (typeof p.materiais === 'string' ? JSON.parse(p.materiais) : p.materiais) : [];
+    if (p.foto) {
+      const label = document.getElementById('peca-photo-label');
+      let img = label.querySelector('img');
+      if (!img) { img = document.createElement('img'); label.appendChild(img); }
+      img.src = p.foto;
+      document.getElementById('peca-foto-base64').value = p.foto;
+      document.getElementById('peca-photo-remove').style.display = 'flex';
+      const icon = document.getElementById('peca-camera-icon');
+      if (icon) icon.style.display = 'none';
+    }
+  }
+
   function abrirModal(id = null) {
     resetForm();
     matsPeca = [];
-    const modal = document.getElementById('peca-modal');
     const title = document.getElementById('peca-modal-title');
 
     if (id) {
       const p = pecas.find(x => x.id === id);
       if (!p) return;
       title.textContent = 'Editar Peça';
-      document.getElementById('peca-id').value         = p.id;
-      document.getElementById('peca-nome').value       = p.nome || '';
-      document.getElementById('peca-categoria').value  = p.categoria || '';
-      document.getElementById('peca-desc').value       = p.desc || '';
-      document.getElementById('peca-horas').value      = p.horas || '';
-      document.getElementById('peca-valor-hora').value = p.valorHora || '';
-      matsPeca = p.materiais ? JSON.parse(p.materiais) : [];
-      if (p.foto) {
-        const label = document.getElementById('peca-photo-label');
-        let img = label.querySelector('img');
-        if (!img) { img = document.createElement('img'); label.appendChild(img); }
-        img.src = p.foto;
-        document.getElementById('peca-foto-base64').value = p.foto;
-        document.getElementById('peca-photo-remove').style.display = 'flex';
-        const icon = document.getElementById('peca-camera-icon');
-        if (icon) icon.style.display = 'none';
-      }
+      _preencherForm(p);
     } else {
       title.textContent = 'Nova Peça';
+      _carregarCatSelect('');
     }
 
     renderMatsPeca();
-    modal.classList.add('open');
+    document.getElementById('peca-modal').classList.add('open');
+    Utils.refreshIcons();
+  }
+
+  function duplicar(id) {
+    const original = pecas.find(x => x.id === id);
+    if (!original) return;
+    resetForm();
+    matsPeca = [];
+    document.getElementById('peca-modal-title').textContent = 'Duplicar Peça';
+    _preencherForm(original, Utils.uid());
+    document.getElementById('peca-nome').value = (original.nome || '') + ' (cópia)';
+    renderMatsPeca();
+    document.getElementById('peca-modal').classList.add('open');
     Utils.refreshIcons();
   }
 
@@ -262,10 +312,7 @@ window.PecasPage = (() => {
   }
 
   function removerFoto(e) {
-    if (e) {
-      e.preventDefault();
-      e.stopPropagation();
-    }
+    if (e) { e.preventDefault(); e.stopPropagation(); }
     document.getElementById('peca-foto-base64').value = '';
     document.getElementById('peca-photo-input').value = '';
     const label = document.getElementById('peca-photo-label');
@@ -295,7 +342,7 @@ window.PecasPage = (() => {
           <option value="">Selecionar material...</option>
           ${materiais.map(m => `
             <option value="${m.id}" ${item.materialId === m.id ? 'selected' : ''}>
-              ${m.nome} (${Utils.formatCurrency(m.preco)}/${m.unidade})
+              ${Utils.escapeHtml(m.nome)} (${Utils.formatCurrency(m.preco)}/${Utils.escapeHtml(m.unidade)})
             </option>
           `).join('')}
         </select>
@@ -324,8 +371,8 @@ window.PecasPage = (() => {
       const mat = materiais.find(m => m.id === item.materialId);
       if (mat) total += (parseFloat(mat.preco) || 0) * (parseFloat(item.quantidade) || 0);
     });
-    const horas      = parseFloat(document.getElementById('peca-horas')?.value) || 0;
-    const valorHora  = parseFloat(document.getElementById('peca-valor-hora')?.value) || 0;
+    const horas     = parseFloat(document.getElementById('peca-horas')?.value) || 0;
+    const valorHora = parseFloat(document.getElementById('peca-valor-hora')?.value) || 0;
     total += horas * valorHora;
     const el = document.getElementById('peca-custo-calc');
     if (el) el.textContent = Utils.formatCurrency(total);
@@ -356,12 +403,13 @@ window.PecasPage = (() => {
       fecharModal();
       await carregar();
     } catch (err) {
+      console.error('[PecasPage] Erro ao salvar:', err);
       Utils.toast('Erro ao salvar: ' + err.message, 'error');
     } finally {
       btn.disabled = false;
     }
   }
 
-  return { abrirModal, fecharModal, salvar, filtrar, previewFoto, adicionarMaterial, removerMaterial, updateMat, removerFoto };
+  return { abrirModal, duplicar, fecharModal, salvar, filtrar, previewFoto, adicionarMaterial, removerMaterial, updateMat, removerFoto };
 })();
 </script>

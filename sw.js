@@ -3,7 +3,7 @@
    Cache-first para assets estáticos, network-first para API
    ============================================================ */
 
-const CACHE_NAME   = 'precificaz-v6';
+const CACHE_NAME   = 'precificaz-v7';
 const API_ORIGIN   = 'script.google.com'; // GAS Web App
 
 const STATIC_ASSETS = [
@@ -24,6 +24,7 @@ const STATIC_ASSETS = [
   '/precificaz/pages/pecas.html',
   '/precificaz/pages/estoque.html',
   '/precificaz/pages/precificacao.html',
+  '/precificaz/pages/perfil.html',
 ];
 
 /* ── Install: pré-cache de assets estáticos ─────────────── */
