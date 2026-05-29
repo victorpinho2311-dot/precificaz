@@ -1,39 +1,36 @@
 /* ============================================================
    PRECIFICAZ — API
-   Comunicação com o backend (Google Apps Script Web App)
-   Usa GET para evitar bloqueio de CORS do GAS
+   Google Apps Script Web App — GET com redirect follow
    ============================================================ */
 
 const API = (() => {
 
   const GAS_URL = 'https://script.google.com/macros/s/AKfycbwMbbUofp6xreEi6IH6PbOHgzvsIOUgaPD-_qXioVtDKywLrKTQnOFyAWcfR0mHtK2h2g/exec';
 
-  /* ── Request base (GET com query string) ────────────────── */
   async function request(action, payload = {}) {
-    const token = Auth ? Auth.getToken() : '';
+    const token = (typeof Auth !== 'undefined') ? Auth.getToken() : '';
 
-    const params = new URLSearchParams({
-      action,
-      token: token || '',
-    });
+    const params = new URLSearchParams({ action, token: token || '' });
 
-    // Adicionar payload (objetos viram JSON encoded)
     Object.entries(payload).forEach(([key, val]) => {
-      params.set(key, typeof val === 'object' ? encodeURIComponent(JSON.stringify(val)) : val);
+      params.set(key, typeof val === 'object' ? JSON.stringify(val) : String(val));
     });
+
+    const url = `${GAS_URL}?${params.toString()}`;
 
     try {
-      const res = await fetch(`${GAS_URL}?${params.toString()}`, {
+      const res = await fetch(url, {
         method: 'GET',
+        redirect: 'follow',
       });
 
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-
       const text = await res.text();
+
       let data;
       try {
         data = JSON.parse(text);
       } catch {
+        console.error('[API] Resposta não é JSON:', text.substring(0, 300));
         throw new Error('Resposta inválida do servidor');
       }
 
@@ -46,63 +43,26 @@ const API = (() => {
     }
   }
 
-  /* ── Auth ───────────────────────────────────────────────── */
   async function login(senha) {
     return request('login', { senha });
   }
 
-  /* ── Materiais ──────────────────────────────────────────── */
-  async function getMateriais() {
-    return request('getMateriais');
-  }
+  async function getMateriais()          { return request('getMateriais'); }
+  async function saveMaterial(m)         { return request('saveMaterial',      { data: m }); }
+  async function deleteMaterial(id)      { return request('deleteMaterial',    { id }); }
 
-  async function saveMaterial(material) {
-    return request('saveMaterial', { data: material });
-  }
+  async function getPecas()              { return request('getPecas'); }
+  async function savePeca(p)             { return request('savePeca',          { data: p }); }
+  async function deletePeca(id)          { return request('deletePeca',        { id }); }
 
-  async function deleteMaterial(id) {
-    return request('deleteMaterial', { id });
-  }
+  async function getEstoque()            { return request('getEstoque'); }
+  async function movimentarEstoque(mov)  { return request('movimentarEstoque', { data: mov }); }
 
-  /* ── Peças ──────────────────────────────────────────────── */
-  async function getPecas() {
-    return request('getPecas');
-  }
+  async function calcularCusto(pecaId)   { return request('calcularCusto',    { pecaId }); }
+  async function salvarPreco(pricing)    { return request('salvarPreco',       { data: pricing }); }
+  async function getPrecos()             { return request('getPrecos'); }
 
-  async function savePeca(peca) {
-    return request('savePeca', { data: peca });
-  }
-
-  async function deletePeca(id) {
-    return request('deletePeca', { id });
-  }
-
-  /* ── Estoque ────────────────────────────────────────────── */
-  async function getEstoque() {
-    return request('getEstoque');
-  }
-
-  async function movimentarEstoque(mov) {
-    return request('movimentarEstoque', { data: mov });
-  }
-
-  /* ── Precificação ───────────────────────────────────────── */
-  async function calcularCusto(pecaId) {
-    return request('calcularCusto', { pecaId });
-  }
-
-  async function salvarPreco(pricing) {
-    return request('salvarPreco', { data: pricing });
-  }
-
-  async function getPrecos() {
-    return request('getPrecos');
-  }
-
-  /* ── Dashboard ──────────────────────────────────────────── */
-  async function getDashboard() {
-    return request('getDashboard');
-  }
+  async function getDashboard()          { return request('getDashboard'); }
 
   return {
     login,

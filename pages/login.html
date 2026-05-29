@@ -112,7 +112,11 @@
         await Auth.login(senha);
         Router.go('dashboard');
       } catch (err) {
-        error.textContent    = 'Senha incorreta. Tente novamente.';
+        console.error('[Login] Erro:', err.message);
+        const msg = err.message && err.message.includes('Senha incorreta')
+          ? 'Senha incorreta. Tente novamente.'
+          : 'Erro de conexão: ' + (err.message || 'verifique o console');
+        error.textContent    = msg;
         error.style.display  = 'block';
         btn.disabled         = false;
         btn.innerHTML        = '<i data-lucide="log-in" width="18" height="18"></i> Entrar';
