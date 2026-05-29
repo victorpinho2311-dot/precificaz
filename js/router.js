@@ -34,6 +34,13 @@ const Router = (() => {
       const container = document.getElementById('page-container');
       container.innerHTML = html;
 
+      // innerHTML não executa <script> — reinjeta manualmente
+      container.querySelectorAll('script').forEach(oldScript => {
+        const newScript = document.createElement('script');
+        newScript.textContent = oldScript.textContent;
+        oldScript.parentNode.replaceChild(newScript, oldScript);
+      });
+
       // Tab bar
       const tabBar = document.getElementById('tab-bar');
       if (PROTECTED_PAGES.includes(page)) {
