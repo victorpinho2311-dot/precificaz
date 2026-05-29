@@ -355,8 +355,8 @@ window.PecasPage = (() => {
       Utils.toast('Peça salva!', 'success');
       fecharModal();
       await carregar();
-    } catch {
-      Utils.toast('Erro ao salvar. Tente novamente.', 'error');
+    } catch (err) {
+      Utils.toast('Erro ao salvar: ' + err.message, 'error');
     } finally {
       btn.disabled = false;
     }
