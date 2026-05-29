@@ -75,18 +75,43 @@ const Utils = (() => {
   }
 
   /* ── Redimensionar imagem antes do upload ───────────────── */
-  function resizeImage(file, maxWidth = 400, quality = 0.8) {
+  function resizeImage(file, maxWidth = 300, quality = 0.6) {
     return new Promise((resolve, reject) => {
       const url = URL.createObjectURL(file);
       const img = new Image();
       img.onload = () => {
         URL.revokeObjectURL(url);
-        const ratio   = Math.min(maxWidth / img.width, 1);
-        const canvas  = document.createElement('canvas');
-        canvas.width  = img.width  * ratio;
-        canvas.height = img.height * ratio;
-        canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
-        resolve(canvas.toDataURL('image/jpeg', quality));
+        
+        let currentWidth = maxWidth;
+        let currentQuality = quality;
+        let base64 = '';
+        
+        // Loop de otimização para garantir que caiba no limite de 50k caracteres do Google Sheets
+        let attempts = 0;
+        do {
+          const ratio   = Math.min(currentWidth / img.width, 1);
+          const canvas  = document.createElement('canvas');
+          canvas.width  = img.width  * ratio;
+          canvas.height = img.height * ratio;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+          base64 = canvas.toDataURL('image/jpeg', currentQuality);
+          
+          if (base64.length < 45000) {
+            break;
+          }
+          
+          // Reduz dimensões e qualidade se ultrapassar o limite
+          currentWidth = Math.floor(currentWidth * 0.85);
+          currentQuality = Math.max(0.2, currentQuality - 0.1);
+          attempts++;
+        } while (currentWidth > 50 && currentQuality >= 0.2 && attempts < 10);
+        
+        if (base64.length >= 48000) {
+          reject(new Error('Imagem muito grande, mesmo após compressão. Escolha outra foto.'));
+        } else {
+          resolve(base64);
+        }
       };
       img.onerror = () => {
         URL.revokeObjectURL(url);
