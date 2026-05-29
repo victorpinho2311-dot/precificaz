@@ -13,6 +13,7 @@ node_modules/
 # Configurações de editor
 .vscode/
 .idea/
+.claude/
 
 # Segurança — nunca commitar senhas ou IDs sensíveis
 # (lembre de substituir os placeholders antes do push)

@@ -60,13 +60,24 @@ function doPost(e) {
 }
 
 // ── SENHA ─────────────────────────────────────────────────────
-// Execute esta função UMA VEZ para definir/redefinir a senha
+// A senha NÃO fica no código (o repositório é público).
+// Para definir/trocar a senha:
+//   1. No editor do Apps Script → ⚙ Configurações do projeto
+//      → Propriedades do script → adicionar:
+//         propriedade: precificaz_nova_senha   valor: <a senha>
+//   2. Rode esta função UMA VEZ.
+//   3. (Opcional) apague a propriedade precificaz_nova_senha depois.
 function definirSenha() {
-  const NOVA_SENHA = 'bebezinha'; // ← senha de acesso ao app
+  const props     = PropertiesService.getScriptProperties();
+  const NOVA_SENHA = props.getProperty('precificaz_nova_senha');
+  if (!NOVA_SENHA) {
+    throw new Error('Defina a propriedade de script "precificaz_nova_senha" antes de rodar definirSenha().');
+  }
   const hash = Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, NOVA_SENHA)
     .map(b => ('0' + (b & 0xFF).toString(16)).slice(-2)).join('');
-  PropertiesService.getScriptProperties().setProperty(SENHA_HASH_KEY, hash);
-  Logger.log('✅ Senha definida! Hash: ' + hash);
+  props.setProperty(SENHA_HASH_KEY, hash);
+  props.deleteProperty('precificaz_nova_senha');
+  Logger.log('✅ Senha definida.');
 }
 
 // ── AUTENTICAÇÃO ──────────────────────────────────────────────
@@ -90,11 +101,21 @@ function handleLogin(params) {
 }
 
 function criarToken() {
+  const sheet  = getOrCreateSheet(SHEETS.SESSOES, ['token', 'expiry']);
+  limparSessoesExpiradas(sheet);
   const token  = Utilities.getUuid();
   const expiry = Date.now() + (7 * 24 * 60 * 60 * 1000);
-  const sheet  = getOrCreateSheet(SHEETS.SESSOES, ['token', 'expiry']);
   sheet.appendRow([token, expiry]);
   return token;
+}
+
+function limparSessoesExpiradas(sheet) {
+  if (sheet.getLastRow() < 2) return;
+  const now  = Date.now();
+  const data = sheet.getRange(2, 1, sheet.getLastRow() - 1, 2).getValues();
+  for (let i = data.length - 1; i >= 0; i--) {
+    if (Number(data[i][1]) <= now) sheet.deleteRow(i + 2);
+  }
 }
 
 function validarToken(token) {
@@ -117,7 +138,7 @@ function handleGetMateriais() {
 }
 
 function handleSaveMaterial(params) {
-  const mat   = JSON.parse(decodeURIComponent(params.data || '{}'));
+  const mat   = JSON.parse(params.data || '{}');
   const sheet = getOrCreateSheet(SHEETS.MATERIAIS,
     ['id','nome','categoria','preco','unidade','qtd','fornecedor','obs','foto','criadoEm']);
   const row   = findRowById(sheet, mat.id);
@@ -145,7 +166,7 @@ function handleGetPecas() {
 }
 
 function handleSavePeca(params) {
-  const peca  = JSON.parse(decodeURIComponent(params.data || '{}'));
+  const peca  = JSON.parse(params.data || '{}');
   const sheet = getOrCreateSheet(SHEETS.PECAS,
     ['id','nome','categoria','desc','horas','valorHora','materiais','custoTotal','foto','criadoEm']);
   const row   = findRowById(sheet, peca.id);
@@ -173,7 +194,7 @@ function handleGetEstoque() {
 }
 
 function handleMovimentarEstoque(params) {
-  const mov   = JSON.parse(decodeURIComponent(params.data || '{}'));
+  const mov   = JSON.parse(params.data || '{}');
   const sheet = getOrCreateSheet(SHEETS.ESTOQUE,
     ['id','tipo','materialId','quantidade','data','obs','registradoEm']);
   sheet.appendRow([mov.id, mov.tipo, mov.materialId, mov.quantidade,
@@ -200,7 +221,7 @@ function handleCalcularCusto(params) {
 }
 
 function handleSalvarPreco(params) {
-  const preco = JSON.parse(decodeURIComponent(params.data || '{}'));
+  const preco = JSON.parse(params.data || '{}');
   const sheet = getOrCreateSheet(SHEETS.PRECOS,
     ['id','pecaId','pecaNome','custoTotal','outros','margem','taxa','precoFinal','data','criadoEm']);
   sheet.appendRow([preco.id, preco.pecaId, preco.pecaNome, preco.custoTotal,

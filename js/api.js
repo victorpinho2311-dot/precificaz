@@ -7,7 +7,7 @@ const API = (() => {
 
   const GAS_URL = 'https://script.google.com/macros/s/AKfycbwMbbUofp6xreEi6IH6PbOHgzvsIOUgaPD-_qXioVtDKywLrKTQnOFyAWcfR0mHtK2h2g/exec';
 
-  async function request(action, payload = {}) {
+  async function request(action, payload = {}, method = 'GET') {
     const token = (typeof Auth !== 'undefined') ? Auth.getToken() : '';
 
     const params = new URLSearchParams({ action, token: token || '' });
@@ -16,13 +16,20 @@ const API = (() => {
       params.set(key, typeof val === 'object' ? JSON.stringify(val) : String(val));
     });
 
-    const url = `${GAS_URL}?${params.toString()}`;
-
     try {
-      const res = await fetch(url, {
-        method: 'GET',
-        redirect: 'follow',
-      });
+      // Gravações vão por POST: fotos em base64 estouram o limite de URL do GET.
+      // O GAS executa doPost, devolve 302 e o browser segue como GET (CORS liberado).
+      const res = method === 'POST'
+        ? await fetch(GAS_URL, {
+            method: 'POST',
+            redirect: 'follow',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: params.toString(),
+          })
+        : await fetch(`${GAS_URL}?${params.toString()}`, {
+            method: 'GET',
+            redirect: 'follow',
+          });
 
       const text = await res.text();
 
@@ -48,18 +55,18 @@ const API = (() => {
   }
 
   async function getMateriais()          { return request('getMateriais'); }
-  async function saveMaterial(m)         { return request('saveMaterial',      { data: m }); }
-  async function deleteMaterial(id)      { return request('deleteMaterial',    { id }); }
+  async function saveMaterial(m)         { return request('saveMaterial',      { data: m },   'POST'); }
+  async function deleteMaterial(id)      { return request('deleteMaterial',    { id },        'POST'); }
 
   async function getPecas()              { return request('getPecas'); }
-  async function savePeca(p)             { return request('savePeca',          { data: p }); }
-  async function deletePeca(id)          { return request('deletePeca',        { id }); }
+  async function savePeca(p)             { return request('savePeca',          { data: p },   'POST'); }
+  async function deletePeca(id)          { return request('deletePeca',        { id },        'POST'); }
 
   async function getEstoque()            { return request('getEstoque'); }
-  async function movimentarEstoque(mov)  { return request('movimentarEstoque', { data: mov }); }
+  async function movimentarEstoque(mov)  { return request('movimentarEstoque', { data: mov }, 'POST'); }
 
   async function calcularCusto(pecaId)   { return request('calcularCusto',    { pecaId }); }
-  async function salvarPreco(pricing)    { return request('salvarPreco',       { data: pricing }); }
+  async function salvarPreco(pricing)    { return request('salvarPreco',       { data: pricing }, 'POST'); }
   async function getPrecos()             { return request('getPrecos'); }
 
   async function getDashboard()          { return request('getDashboard'); }

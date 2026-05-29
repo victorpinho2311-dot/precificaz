@@ -85,7 +85,7 @@
 </div>
 
 <script>
-const EstoquePage = (() => {
+window.EstoquePage = (() => {
   let movimentos = [];
   let materiais  = [];
   let tipoFiltro = 'todos';
@@ -131,11 +131,11 @@ const EstoquePage = (() => {
             <i data-lucide="${isEntrada ? 'arrow-down-circle' : 'arrow-up-circle'}" width="20" height="20"></i>
           </div>
           <div class="list-item__info">
-            <div class="list-item__name">${mat?.nome || 'Material removido'}</div>
-            <div class="list-item__meta">${Utils.formatDate(m.data)} ${m.obs ? '· ' + m.obs : ''}</div>
+            <div class="list-item__name">${Utils.escapeHtml(mat?.nome || 'Material removido')}</div>
+            <div class="list-item__meta">${Utils.formatDate(m.data)} ${m.obs ? '· ' + Utils.escapeHtml(m.obs) : ''}</div>
           </div>
           <div style="font-weight:700;font-size:var(--text-sm);color:${isEntrada ? 'var(--color-primary)' : 'var(--color-destructive)'};">
-            ${isEntrada ? '+' : '-'}${m.quantidade} ${mat?.unidade || ''}
+            ${isEntrada ? '+' : '-'}${m.quantidade} ${Utils.escapeHtml(mat?.unidade || '')}
           </div>
         </div>
       `;
@@ -159,7 +159,7 @@ const EstoquePage = (() => {
     // Popular select de materiais
     const sel = document.getElementById('est-material');
     sel.innerHTML = '<option value="">Selecionar material...</option>' +
-      materiais.map(m => `<option value="${m.id}">${m.nome} (${m.unidade})</option>`).join('');
+      materiais.map(m => `<option value="${m.id}">${Utils.escapeHtml(m.nome)} (${Utils.escapeHtml(m.unidade)})</option>`).join('');
 
     // Data padrão: hoje
     document.getElementById('est-data').value = new Date().toISOString().split('T')[0];

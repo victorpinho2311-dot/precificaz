@@ -17,33 +17,34 @@ App PWA para precificação de artigos artesanais com controle de materiais e es
 
 ## Estrutura do projeto
 
+O frontend fica na **raiz** do repositório (é o que o GitHub Pages publica).
+
 ```
 precificaz/
-├── frontend/
-│   ├── index.html          ← SPA shell
-│   ├── manifest.json       ← PWA manifest
-│   ├── sw.js               ← Service Worker
-│   ├── assets/
-│   │   └── icons/          ← Ícones PWA (192px, 512px)
-│   ├── css/
-│   │   ├── tokens.css      ← Design tokens (cores, tipografia, espaçamento)
-│   │   ├── base.css        ← Reset + estilos globais + textura
-│   │   └── components.css  ← Componentes reutilizáveis
-│   ├── js/
-│   │   ├── utils.js        ← Helpers (moeda, toast, base64...)
-│   │   ├── api.js          ← Comunicação com o backend (GAS)
-│   │   ├── auth.js         ← Autenticação/sessão
-│   │   ├── router.js       ← Roteamento SPA
-│   │   └── app.js          ← Inicialização + PWA install
-│   └── pages/
-│       ├── login.html
-│       ├── dashboard.html
-│       ├── materiais.html
-│       ├── pecas.html
-│       ├── estoque.html
-│       └── precificacao.html
+├── index.html          ← SPA shell
+├── manifest.json       ← PWA manifest
+├── sw.js               ← Service Worker
+├── assets/
+│   └── icons/          ← Ícones PWA (icon-192.png, icon-512.png)
+├── css/
+│   ├── tokens.css      ← Design tokens (cores, tipografia, espaçamento)
+│   ├── base.css        ← Reset + estilos globais + textura
+│   └── components.css  ← Componentes reutilizáveis
+├── js/
+│   ├── utils.js        ← Helpers (moeda, toast, base64...)
+│   ├── api.js          ← Comunicação com o backend (GAS)
+│   ├── auth.js         ← Autenticação/sessão
+│   ├── router.js       ← Roteamento SPA
+│   └── app.js          ← Inicialização + PWA install
+├── pages/
+│   ├── login.html
+│   ├── dashboard.html
+│   ├── materiais.html
+│   ├── pecas.html
+│   ├── estoque.html
+│   └── precificacao.html
 └── backend/
-    └── Code.gs             ← Google Apps Script completo
+    └── Code.gs         ← Google Apps Script completo
 ```
 
 ---
@@ -56,12 +57,12 @@ precificaz/
 2. Cole o conteúdo de `backend/Code.gs`
 3. Crie uma **Planilha Google** em branco e copie o ID da URL
    - URL: `docs.google.com/spreadsheets/d/SEU_ID/edit`
-4. Substitua `SEU_SPREADSHEET_ID_AQUI` no topo do `Code.gs`
-5. Altere a senha padrão na função `definirSenha()`:
-   ```javascript
-   const NOVA_SENHA = 'sua-senha-aqui';
-   ```
-6. Clique no menu **Executar** → **definirSenha** (rode uma única vez)
+4. Coloque esse ID em `SPREADSHEET_ID` no topo do `Code.gs`
+5. Defina a senha **sem colocá-la no código** (o repositório é público):
+   - ⚙ **Configurações do projeto** → **Propriedades do script** → adicionar
+     `precificaz_nova_senha` = a senha desejada
+6. Clique no menu **Executar** → **definirSenha** (rode uma única vez).
+   A função grava o hash e apaga a propriedade da senha.
 7. Em **Implantar** → **Nova implantação**:
    - Tipo: **App da Web**
    - Executar como: **Eu mesmo**
@@ -70,7 +71,7 @@ precificaz/
 
 ### 2. Frontend — conectar ao backend
 
-Abra `frontend/js/api.js` e substitua:
+Abra `js/api.js` e ajuste o `GAS_URL` com a URL da sua implantação:
 ```javascript
 const GAS_URL = 'https://script.google.com/macros/s/SEU_DEPLOYMENT_ID/exec';
 ```
@@ -88,7 +89,7 @@ git commit -m "feat: projeto inicial Precificaz"
 git push -u origin main
 
 # Ativar GitHub Pages
-# Em: Settings → Pages → Branch: main → Folder: /frontend → Save
+# Em: Settings → Pages → Branch: main → Folder: / (root) → Save
 ```
 
 A URL final será:
@@ -98,11 +99,9 @@ https://victorpinho2311-dot.github.io/precificaz/
 
 ### 4. Ícones PWA (necessário para instalação no iPhone)
 
-Gere dois ícones PNG e coloque em `frontend/assets/icons/`:
-- `icon-192.png` (192×192px)
-- `icon-512.png` (512×512px)
-
-Recomendado: [realfavicongenerator.net](https://realfavicongenerator.net)
+Já existem ícones em `assets/icons/` (`icon-192.png` e `icon-512.png`).
+Para trocar por um logo próprio, substitua esses dois arquivos mantendo os
+mesmos nomes e tamanhos (192×192 e 512×512).
 
 ### 5. Instalar no iPhone
 
@@ -114,7 +113,7 @@ Recomendado: [realfavicongenerator.net](https://realfavicongenerator.net)
 
 ## Design System
 
-Os tokens de design estão em `frontend/css/tokens.css`.
+Os tokens de design estão em `css/tokens.css`.
 O visual final será definido após o prompt de UX.
 Por ora, os tokens seguem o sistema **Organic/Natural** como base.
 

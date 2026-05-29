@@ -107,7 +107,7 @@
 </div>
 
 <script>
-const PrecificacaoPage = (() => {
+window.PrecificacaoPage = (() => {
   let pecas    = [];
   let precos   = [];
   let pecaAtual = null;
@@ -126,7 +126,7 @@ const PrecificacaoPage = (() => {
 
       const sel = document.getElementById('prec-peca-select');
       sel.innerHTML = '<option value="">Escolha uma peça...</option>' +
-        pecas.map(p => `<option value="${p.id}">${p.nome}</option>`).join('');
+        pecas.map(p => `<option value="${p.id}">${Utils.escapeHtml(p.nome)}</option>`).join('');
 
       renderHistorico();
     } catch {
@@ -227,7 +227,7 @@ const PrecificacaoPage = (() => {
     el.innerHTML = precos.map(p => `
       <div class="list-item" style="cursor:default;">
         <div class="list-item__info">
-          <div class="list-item__name">${p.pecaNome}</div>
+          <div class="list-item__name">${Utils.escapeHtml(p.pecaNome)}</div>
           <div class="list-item__meta">${Utils.formatDate(p.data)} · margem ${p.margem}%</div>
         </div>
         <div style="text-align:right;">

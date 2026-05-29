@@ -5,6 +5,13 @@
 
 const Utils = (() => {
 
+  /* ── Escapar HTML (evita quebra de UI / XSS em innerHTML) ── */
+  function escapeHtml(value) {
+    return String(value ?? '').replace(/[&<>"']/g, c => ({
+      '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    }[c]));
+  }
+
   /* ── Toast ─────────────────────────────────────────────── */
   function toast(message, type = 'info', duration = 3000) {
     const container = document.getElementById('toast-container');
@@ -122,6 +129,7 @@ const Utils = (() => {
   }
 
   return {
+    escapeHtml,
     toast,
     formatCurrency,
     parseCurrency,

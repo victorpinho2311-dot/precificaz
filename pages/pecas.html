@@ -122,7 +122,7 @@
 </div>
 
 <script>
-const PecasPage = (() => {
+window.PecasPage = (() => {
   let pecas      = [];
   let materiais  = [];
   let filtrado   = [];
@@ -160,14 +160,14 @@ const PecasPage = (() => {
     lista.innerHTML = filtrado.map(p => `
       <div class="list-item" onclick="PecasPage.abrirModal('${p.id}')">
         ${p.foto
-          ? `<img class="list-item__photo" src="${p.foto}" alt="${p.nome}" />`
+          ? `<img class="list-item__photo" src="${p.foto}" alt="${Utils.escapeHtml(p.nome)}" />`
           : `<div class="list-item__photo" style="display:flex;align-items:center;justify-content:center;color:var(--color-muted-fg);">
                <i data-lucide="package" width="20" height="20"></i>
              </div>`
         }
         <div class="list-item__info">
-          <div class="list-item__name">${p.nome}</div>
-          <div class="list-item__meta">${p.categoria || ''}${p.horas ? ` · ${p.horas}h` : ''}</div>
+          <div class="list-item__name">${Utils.escapeHtml(p.nome)}</div>
+          <div class="list-item__meta">${Utils.escapeHtml(p.categoria || '')}${p.horas ? ` · ${p.horas}h` : ''}</div>
         </div>
         <div class="list-item__value">${Utils.formatCurrency(p.custoTotal || 0)}</div>
       </div>
