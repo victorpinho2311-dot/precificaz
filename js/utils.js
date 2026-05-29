@@ -75,19 +75,24 @@ const Utils = (() => {
   }
 
   /* ── Redimensionar imagem antes do upload ───────────────── */
-  async function resizeImage(file, maxWidth = 400, quality = 0.8) {
-    const base64 = await fileToBase64(file);
-    return new Promise((resolve) => {
-      const img    = new Image();
-      img.onload   = () => {
-        const ratio  = Math.min(maxWidth / img.width, 1);
-        const canvas = document.createElement('canvas');
+  function resizeImage(file, maxWidth = 400, quality = 0.8) {
+    return new Promise((resolve, reject) => {
+      const url = URL.createObjectURL(file);
+      const img = new Image();
+      img.onload = () => {
+        URL.revokeObjectURL(url);
+        const ratio   = Math.min(maxWidth / img.width, 1);
+        const canvas  = document.createElement('canvas');
         canvas.width  = img.width  * ratio;
         canvas.height = img.height * ratio;
         canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
         resolve(canvas.toDataURL('image/jpeg', quality));
       };
-      img.src = base64;
+      img.onerror = () => {
+        URL.revokeObjectURL(url);
+        reject(new Error('Falha ao processar imagem'));
+      };
+      img.src = url;
     });
   }
 

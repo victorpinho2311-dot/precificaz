@@ -254,11 +254,14 @@
   background: var(--color-bg);
   border-radius: var(--radius-xl) var(--radius-xl) 0 0;
   padding: var(--space-6);
-  padding-bottom: calc(var(--space-6) + env(safe-area-inset-bottom));
+  padding-bottom: calc(var(--space-10) + env(safe-area-inset-bottom));
   width: 100%;
   max-width: 480px;
   max-height: 90vh;
+  max-height: 90dvh;
   overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
   transform: translateY(100%);
   transition: transform var(--transition-normal);
 }

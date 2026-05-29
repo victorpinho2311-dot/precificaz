@@ -239,14 +239,19 @@ window.MateriaisPage = (() => {
   async function previewFoto(input) {
     const file = input.files[0];
     if (!file) return;
-    const base64 = await Utils.resizeImage(file);
-    document.getElementById('mat-foto-base64').value = base64;
-    const label = document.getElementById('mat-photo-label');
-    let img = label.querySelector('img');
-    if (!img) { img = document.createElement('img'); label.appendChild(img); }
-    img.src = base64;
-    const icon = document.getElementById('mat-camera-icon');
-    if (icon) icon.style.display = 'none';
+    try {
+      const base64 = await Utils.resizeImage(file);
+      document.getElementById('mat-foto-base64').value = base64;
+      const label = document.getElementById('mat-photo-label');
+      let img = label.querySelector('img');
+      if (!img) { img = document.createElement('img'); label.appendChild(img); }
+      img.src = base64;
+      const icon = document.getElementById('mat-camera-icon');
+      if (icon) icon.style.display = 'none';
+    } catch {
+      input.value = '';
+      Utils.toast('Não foi possível carregar a imagem. Tente outra foto.', 'error');
+    }
   }
 
   async function salvar(e) {
