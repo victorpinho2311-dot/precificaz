@@ -367,7 +367,7 @@ window.PecasPage = (() => {
 
   function updateMat(idx, field, value) {
     matsPeca[idx][field] = field === 'quantidade' ? parseFloat(value) || 0 : value;
-    recalcularCusto();
+    renderMatsPeca();
   }
 
   function recalcularCusto() {
