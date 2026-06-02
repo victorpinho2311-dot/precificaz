@@ -145,11 +145,10 @@ window.MateriaisPage = (() => {
       materiais = (res.data || []).sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
       filtrado  = [...materiais];
       renderizar();
-    } catch {
+    } catch (err) {
+      console.error('[Materiais] Erro:', err.message);
       const lista = document.getElementById('mat-lista');
-      if (lista?.querySelector('.loading-spinner')) {
-        lista.innerHTML = `<div class="empty-state"><div class="empty-state__icon">⚠️</div><div class="empty-state__title">Erro ao carregar</div><div class="empty-state__desc">Verifique sua conexão e tente novamente</div></div>`;
-      }
+      lista.innerHTML = `<div class="empty-state"><div class="empty-state__icon">⚠️</div><div class="empty-state__title">Erro ao carregar</div><div class="empty-state__desc">${Utils.escapeHtml(err.message)}</div><button class="btn btn--outline btn--sm" style="margin-top:var(--space-4);" onclick="MateriaisPage.carregar()">Tentar novamente</button></div>`;
     }
   }
 
@@ -372,6 +371,6 @@ window.MateriaisPage = (() => {
     }
   }
 
-  return { abrirModal, duplicar, excluir, fecharModal, salvar, filtrar, previewFoto, removerFoto };
+  return { carregar, abrirModal, duplicar, excluir, fecharModal, salvar, filtrar, previewFoto, removerFoto };
 })();
 </script>

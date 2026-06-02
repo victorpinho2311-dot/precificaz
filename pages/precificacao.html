@@ -137,11 +137,10 @@ window.PrecificacaoPage = (() => {
         pecas.map(p => `<option value="${p.id}">${Utils.escapeHtml(p.nome)}</option>`).join('');
 
       renderHistorico();
-    } catch {
+    } catch (err) {
+      console.error('[Precificação] Erro:', err.message);
       const hist = document.getElementById('prec-historico');
-      if (hist?.querySelector('.loading-spinner')) {
-        hist.innerHTML = `<div class="empty-state"><div class="empty-state__icon">⚠️</div><div class="empty-state__title">Erro ao carregar</div><div class="empty-state__desc">Verifique sua conexão e tente novamente</div></div>`;
-      }
+      hist.innerHTML = `<div class="empty-state"><div class="empty-state__icon">⚠️</div><div class="empty-state__title">Erro ao carregar</div><div class="empty-state__desc">${Utils.escapeHtml(err.message)}</div><button class="btn btn--outline btn--sm" style="margin-top:var(--space-4);" onclick="PrecificacaoPage.carregar()">Tentar novamente</button></div>`;
     }
   }
 
@@ -294,6 +293,6 @@ window.PrecificacaoPage = (() => {
     `).join('');
   }
 
-  return { selecionarPeca, calcular, salvarPreco };
+  return { carregar, selecionarPeca, calcular, salvarPreco };
 })();
 </script>

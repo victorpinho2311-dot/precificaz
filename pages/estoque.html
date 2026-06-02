@@ -104,11 +104,10 @@ window.EstoquePage = (() => {
       movimentos = resEst.data  || [];
       materiais  = resMats.data || [];
       renderizar();
-    } catch {
+    } catch (err) {
+      console.error('[Estoque] Erro:', err.message);
       const lista = document.getElementById('estoque-lista');
-      if (lista?.querySelector('.loading-spinner')) {
-        lista.innerHTML = `<div class="empty-state"><div class="empty-state__icon">⚠️</div><div class="empty-state__title">Erro ao carregar</div><div class="empty-state__desc">Verifique sua conexão e tente novamente</div></div>`;
-      }
+      lista.innerHTML = `<div class="empty-state"><div class="empty-state__icon">⚠️</div><div class="empty-state__title">Erro ao carregar</div><div class="empty-state__desc">${Utils.escapeHtml(err.message)}</div><button class="btn btn--outline btn--sm" style="margin-top:var(--space-4);" onclick="EstoquePage.carregar()">Tentar novamente</button></div>`;
     }
   }
 
@@ -220,6 +219,6 @@ window.EstoquePage = (() => {
     }
   }
 
-  return { abrirModal, fecharModal, salvar, filtrarTipo, setTipo };
+  return { carregar, abrirModal, fecharModal, salvar, filtrarTipo, setTipo };
 })();
 </script>
