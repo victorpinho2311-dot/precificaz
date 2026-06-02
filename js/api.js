@@ -29,8 +29,12 @@ const API = (() => {
   // Fila de revalidações em background para não duplicar requests simultâneos
   const _revalidating = new Set();
 
+  const REQUEST_TIMEOUT = 20_000; // 20 segundos
+
   async function request(action, payload = {}, method = 'GET') {
     const token = (typeof Auth !== 'undefined') ? Auth.getToken() : '';
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT);
 
     try {
       let res;
@@ -41,6 +45,7 @@ const API = (() => {
           redirect: 'follow',
           headers: { 'Content-Type': 'text/plain;charset=utf-8' },
           body: JSON.stringify(payload),
+          signal: controller.signal,
         });
       } else {
         const params = new URLSearchParams({ action, token: token || '' });
@@ -50,8 +55,10 @@ const API = (() => {
         res = await fetch(`${GAS_URL}?${params.toString()}`, {
           method: 'GET',
           redirect: 'follow',
+          signal: controller.signal,
         });
       }
+      clearTimeout(timeoutId);
 
       const text = await res.text();
 
@@ -63,12 +70,21 @@ const API = (() => {
         throw new Error('Resposta inválida do servidor');
       }
 
-      if (!data.ok) throw new Error(data.error || 'Erro desconhecido');
+      if (!data.ok) {
+        const msg = data.error || 'Erro desconhecido';
+        if (msg.toLowerCase().includes('sess') && msg.toLowerCase().includes('expir')) {
+          // Sessão expirada: redireciona para login automaticamente
+          if (typeof Auth !== 'undefined') Auth.logout();
+        }
+        throw new Error(msg);
+      }
       return data;
 
     } catch (err) {
-      console.error(`[API] ${action}:`, err.message);
-      throw err;
+      clearTimeout(timeoutId);
+      const msg = err.name === 'AbortError' ? 'Servidor demorou demais para responder.' : err.message;
+      console.error(`[API] ${action}:`, msg);
+      throw new Error(msg);
     }
   }
 

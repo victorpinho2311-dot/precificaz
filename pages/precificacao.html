@@ -138,7 +138,10 @@ window.PrecificacaoPage = (() => {
 
       renderHistorico();
     } catch {
-      Utils.toast('Erro ao carregar dados.', 'error');
+      const hist = document.getElementById('prec-historico');
+      if (hist?.querySelector('.loading-spinner')) {
+        hist.innerHTML = `<div class="empty-state"><div class="empty-state__icon">⚠️</div><div class="empty-state__title">Erro ao carregar</div><div class="empty-state__desc">Verifique sua conexão e tente novamente</div></div>`;
+      }
     }
   }
 

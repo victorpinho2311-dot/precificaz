@@ -144,7 +144,10 @@ window.PecasPage = (() => {
       filtrado  = [...pecas];
       renderizar();
     } catch {
-      Utils.toast('Erro ao carregar peças.', 'error');
+      const lista = document.getElementById('peca-lista');
+      if (lista?.querySelector('.loading-spinner')) {
+        lista.innerHTML = `<div class="empty-state"><div class="empty-state__icon">⚠️</div><div class="empty-state__title">Erro ao carregar</div><div class="empty-state__desc">Verifique sua conexão e tente novamente</div></div>`;
+      }
     }
   }
 
