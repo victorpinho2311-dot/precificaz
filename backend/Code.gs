@@ -181,7 +181,7 @@ function handleGetMateriais(ss) {
   const sheet = getOrCreateSheet(ss, SHEETS.MATERIAIS,
     ['id','nome','categoria','preco','unidade','qtd','fornecedor','obs','foto','criadoEm']);
   const result = JSON.stringify({ ok: true, data: sheetToObjects(sheet) });
-  gasCache.put('getMateriais', result, CACHE_TTL_DADOS);
+  cachePut(gasCache, 'getMateriais', result, CACHE_TTL_DADOS);
   return jsonResponseRaw(result);
 }
 
@@ -217,7 +217,7 @@ function handleGetPecas(ss) {
   const sheet = getOrCreateSheet(ss, SHEETS.PECAS,
     ['id','nome','categoria','desc','horas','valorHora','materiais','custoTotal','foto','criadoEm']);
   const result = JSON.stringify({ ok: true, data: sheetToObjects(sheet) });
-  gasCache.put('getPecas', result, CACHE_TTL_DADOS);
+  cachePut(gasCache, 'getPecas', result, CACHE_TTL_DADOS);
   return jsonResponseRaw(result);
 }
 
@@ -253,7 +253,7 @@ function handleGetEstoque(ss) {
   const sheet = getOrCreateSheet(ss, SHEETS.ESTOQUE,
     ['id','tipo','materialId','quantidade','data','obs','registradoEm']);
   const result = JSON.stringify({ ok: true, data: sheetToObjects(sheet) });
-  gasCache.put('getEstoque', result, CACHE_TTL_DADOS);
+  cachePut(gasCache, 'getEstoque', result, CACHE_TTL_DADOS);
   return jsonResponseRaw(result);
 }
 
@@ -304,7 +304,7 @@ function handleGetPrecos(ss) {
   const sheet = getOrCreateSheet(ss, SHEETS.PRECOS,
     ['id','pecaId','pecaNome','custoTotal','outros','margem','taxa','precoFinal','data','criadoEm']);
   const result = JSON.stringify({ ok: true, data: sheetToObjects(sheet).reverse() });
-  gasCache.put('getPrecos', result, CACHE_TTL_DADOS);
+  cachePut(gasCache, 'getPrecos', result, CACHE_TTL_DADOS);
   return jsonResponseRaw(result);
 }
 
@@ -325,11 +325,16 @@ function handleGetDashboard(ss) {
     estoque:   count(SHEETS.ESTOQUE),
     precos:    count(SHEETS.PRECOS),
   });
-  gasCache.put('getDashboard', result, CACHE_TTL_DADOS);
+  cachePut(gasCache, 'getDashboard', result, CACHE_TTL_DADOS);
   return jsonResponseRaw(result);
 }
 
 // ── HELPERS ───────────────────────────────────────────────────
+
+// Salva no CacheService sem lançar erro se o valor for grande demais
+function cachePut(cache, key, value, ttl) {
+  try { cache.put(key, value, ttl); } catch (e) { /* ignora — dados muito grandes para cache */ }
+}
 function getOrCreateSheet(ss, name, headers) {
   let sheet = ss.getSheetByName(name);
   if (!sheet) {
