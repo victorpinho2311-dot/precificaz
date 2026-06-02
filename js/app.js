@@ -8,7 +8,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   /* ── Service Worker ─────────────────────────────────────── */
   if ('serviceWorker' in navigator) {
     try {
-      const reg = await navigator.serviceWorker.register('/precificaz/sw.js?v=6', {
+      const reg = await navigator.serviceWorker.register('/precificaz/sw.js?v=8', {
         scope: '/precificaz/'
       });
       console.log('[SW] Registrado:', reg.scope);

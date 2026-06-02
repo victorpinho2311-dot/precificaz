@@ -200,8 +200,9 @@ window.MateriaisPage = (() => {
         const id   = item.dataset.id;
         const nome = materiais.find(x => x.id === id)?.nome || '';
         ActionSheet.show(nome, [
-          { label: 'Editar',    icon: 'edit-2', action: `MateriaisPage.abrirModal('${id}'); ActionSheet.hide();` },
-          { label: 'Duplicar',  icon: 'copy',   action: `MateriaisPage.duplicar('${id}'); ActionSheet.hide();` },
+          { label: 'Editar',    icon: 'edit-2',  action: `MateriaisPage.abrirModal('${id}'); ActionSheet.hide();` },
+          { label: 'Duplicar',  icon: 'copy',    action: `MateriaisPage.duplicar('${id}'); ActionSheet.hide();` },
+          { label: 'Excluir',   icon: 'trash-2', color: 'var(--color-destructive)', action: `MateriaisPage.excluir('${id}'); ActionSheet.hide();` },
         ]);
       }, 600);
     }, { passive: true });
@@ -322,6 +323,19 @@ window.MateriaisPage = (() => {
     document.getElementById('mat-photo-remove').style.display = 'none';
   }
 
+  async function excluir(id) {
+    const m = materiais.find(x => x.id === id);
+    if (!m) return;
+    if (!window.confirm(`Excluir "${m.nome}"? Esta ação não pode ser desfeita.`)) return;
+    try {
+      await API.deleteMaterial(id);
+      Utils.toast('Material excluído.', 'success');
+      await carregar();
+    } catch (err) {
+      Utils.toast('Erro ao excluir: ' + err.message, 'error');
+    }
+  }
+
   async function salvar(e) {
     e.preventDefault();
     const btn = document.getElementById('mat-save-btn');
@@ -351,6 +365,6 @@ window.MateriaisPage = (() => {
     }
   }
 
-  return { abrirModal, duplicar, fecharModal, salvar, filtrar, previewFoto, removerFoto };
+  return { abrirModal, duplicar, excluir, fecharModal, salvar, filtrar, previewFoto, removerFoto };
 })();
 </script>

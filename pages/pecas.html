@@ -196,8 +196,9 @@ window.PecasPage = (() => {
         const id   = item.dataset.id;
         const nome = pecas.find(x => x.id === id)?.nome || '';
         ActionSheet.show(nome, [
-          { label: 'Editar',   icon: 'edit-2', action: `PecasPage.abrirModal('${id}'); ActionSheet.hide();` },
-          { label: 'Duplicar', icon: 'copy',   action: `PecasPage.duplicar('${id}'); ActionSheet.hide();` },
+          { label: 'Editar',   icon: 'edit-2',  action: `PecasPage.abrirModal('${id}'); ActionSheet.hide();` },
+          { label: 'Duplicar', icon: 'copy',    action: `PecasPage.duplicar('${id}'); ActionSheet.hide();` },
+          { label: 'Excluir',  icon: 'trash-2', color: 'var(--color-destructive)', action: `PecasPage.excluir('${id}'); ActionSheet.hide();` },
         ]);
       }, 600);
     }, { passive: true });
@@ -379,6 +380,19 @@ window.PecasPage = (() => {
     return total;
   }
 
+  async function excluir(id) {
+    const p = pecas.find(x => x.id === id);
+    if (!p) return;
+    if (!window.confirm(`Excluir "${p.nome}"? Esta ação não pode ser desfeita.`)) return;
+    try {
+      await API.deletePeca(id);
+      Utils.toast('Peça excluída.', 'success');
+      await carregar();
+    } catch (err) {
+      Utils.toast('Erro ao excluir: ' + err.message, 'error');
+    }
+  }
+
   async function salvar(e) {
     e.preventDefault();
     const btn = document.getElementById('peca-save-btn');
@@ -410,6 +424,6 @@ window.PecasPage = (() => {
     }
   }
 
-  return { abrirModal, duplicar, fecharModal, salvar, filtrar, previewFoto, adicionarMaterial, removerMaterial, updateMat, removerFoto };
+  return { abrirModal, duplicar, excluir, fecharModal, salvar, filtrar, previewFoto, adicionarMaterial, removerMaterial, updateMat, removerFoto };
 })();
 </script>

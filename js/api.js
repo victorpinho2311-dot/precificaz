@@ -7,6 +7,24 @@ const API = (() => {
 
   const GAS_URL = 'https://script.google.com/macros/s/AKfycbwMbbUofp6xreEi6IH6PbOHgzvsIOUgaPD-_qXioVtDKywLrKTQnOFyAWcfR0mHtK2h2g/exec';
 
+  const CACHE_TTL = 30_000; // 30 segundos
+  const _cache = {};
+
+  function _cacheGet(key) {
+    const entry = _cache[key];
+    if (!entry) return null;
+    if (Date.now() - entry.ts > CACHE_TTL) { delete _cache[key]; return null; }
+    return entry.data;
+  }
+
+  function _cacheSet(key, data) {
+    _cache[key] = { data, ts: Date.now() };
+  }
+
+  function invalidateCache(...keys) {
+    keys.forEach(k => delete _cache[k]);
+  }
+
   async function request(action, payload = {}, method = 'GET') {
     const token = (typeof Auth !== 'undefined') ? Auth.getToken() : '';
 
@@ -56,22 +74,70 @@ const API = (() => {
     return request('login', { senha });
   }
 
-  async function getMateriais()          { return request('getMateriais'); }
-  async function saveMaterial(m)         { return request('saveMaterial',      { data: m },   'POST'); }
-  async function deleteMaterial(id)      { return request('deleteMaterial',    { id },        'POST'); }
+  async function getMateriais() {
+    const cached = _cacheGet('getMateriais');
+    if (cached) return cached;
+    const res = await request('getMateriais');
+    _cacheSet('getMateriais', res);
+    return res;
+  }
+  async function saveMaterial(m) {
+    invalidateCache('getMateriais', 'getDashboard');
+    return request('saveMaterial', { data: m }, 'POST');
+  }
+  async function deleteMaterial(id) {
+    invalidateCache('getMateriais', 'getDashboard');
+    return request('deleteMaterial', { id }, 'POST');
+  }
 
-  async function getPecas()              { return request('getPecas'); }
-  async function savePeca(p)             { return request('savePeca',          { data: p },   'POST'); }
-  async function deletePeca(id)          { return request('deletePeca',        { id },        'POST'); }
+  async function getPecas() {
+    const cached = _cacheGet('getPecas');
+    if (cached) return cached;
+    const res = await request('getPecas');
+    _cacheSet('getPecas', res);
+    return res;
+  }
+  async function savePeca(p) {
+    invalidateCache('getPecas', 'getDashboard');
+    return request('savePeca', { data: p }, 'POST');
+  }
+  async function deletePeca(id) {
+    invalidateCache('getPecas', 'getDashboard');
+    return request('deletePeca', { id }, 'POST');
+  }
 
-  async function getEstoque()            { return request('getEstoque'); }
-  async function movimentarEstoque(mov)  { return request('movimentarEstoque', { data: mov }, 'POST'); }
+  async function getEstoque() {
+    const cached = _cacheGet('getEstoque');
+    if (cached) return cached;
+    const res = await request('getEstoque');
+    _cacheSet('getEstoque', res);
+    return res;
+  }
+  async function movimentarEstoque(mov) {
+    invalidateCache('getEstoque', 'getDashboard');
+    return request('movimentarEstoque', { data: mov }, 'POST');
+  }
 
-  async function calcularCusto(pecaId)   { return request('calcularCusto',    { pecaId }); }
-  async function salvarPreco(pricing)    { return request('salvarPreco',       { data: pricing }, 'POST'); }
-  async function getPrecos()             { return request('getPrecos'); }
+  async function calcularCusto(pecaId)   { return request('calcularCusto', { pecaId }); }
+  async function salvarPreco(pricing) {
+    invalidateCache('getPrecos', 'getDashboard');
+    return request('salvarPreco', { data: pricing }, 'POST');
+  }
+  async function getPrecos() {
+    const cached = _cacheGet('getPrecos');
+    if (cached) return cached;
+    const res = await request('getPrecos');
+    _cacheSet('getPrecos', res);
+    return res;
+  }
 
-  async function getDashboard()          { return request('getDashboard'); }
+  async function getDashboard() {
+    const cached = _cacheGet('getDashboard');
+    if (cached) return cached;
+    const res = await request('getDashboard');
+    _cacheSet('getDashboard', res);
+    return res;
+  }
 
   return {
     login,
@@ -80,5 +146,6 @@ const API = (() => {
     getEstoque,   movimentarEstoque,
     calcularCusto, salvarPreco, getPrecos,
     getDashboard,
+    invalidateCache,
   };
 })();
