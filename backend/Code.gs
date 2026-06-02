@@ -19,13 +19,15 @@ const SHEETS = {
   SESSOES:   'Sessões',
 };
 
+// TTLs do CacheService (segundos)
+const CACHE_TTL_DADOS  = 300; // 5 min para listas de dados
+const CACHE_TTL_TOKEN  = 600; // 10 min para validação de token
+
 // ── ENTRY POINTS ──────────────────────────────────────────────
 function doGet(e) {
   const params = {};
   if (e && e.parameter) {
-    Object.keys(e.parameter).forEach(key => {
-      params[key] = e.parameter[key];
-    });
+    Object.keys(e.parameter).forEach(key => { params[key] = e.parameter[key]; });
   }
 
   if (e && e.postData && e.postData.contents) {
@@ -51,21 +53,24 @@ function doGet(e) {
       return jsonResponse({ ok: false, error: 'Sessão expirada. Faça login novamente.' });
     }
 
+    // Abre a planilha uma única vez por request e repassa para os handlers
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+
     switch (action) {
       case 'ping':              return jsonResponse({ ok: true, message: 'Precificaz API online' });
-      case 'login':             return handleLogin(params);
-      case 'getMateriais':      return handleGetMateriais();
-      case 'saveMaterial':      return handleSaveMaterial(params);
-      case 'deleteMaterial':    return handleDeleteMaterial(params);
-      case 'getPecas':          return handleGetPecas();
-      case 'savePeca':          return handleSavePeca(params);
-      case 'deletePeca':        return handleDeletePeca(params);
-      case 'getEstoque':        return handleGetEstoque();
-      case 'movimentarEstoque': return handleMovimentarEstoque(params);
-      case 'calcularCusto':     return handleCalcularCusto(params);
-      case 'salvarPreco':       return handleSalvarPreco(params);
-      case 'getPrecos':         return handleGetPrecos();
-      case 'getDashboard':      return handleGetDashboard();
+      case 'login':             return handleLogin(params, ss);
+      case 'getMateriais':      return handleGetMateriais(ss);
+      case 'saveMaterial':      return handleSaveMaterial(params, ss);
+      case 'deleteMaterial':    return handleDeleteMaterial(params, ss);
+      case 'getPecas':          return handleGetPecas(ss);
+      case 'savePeca':          return handleSavePeca(params, ss);
+      case 'deletePeca':        return handleDeletePeca(params, ss);
+      case 'getEstoque':        return handleGetEstoque(ss);
+      case 'movimentarEstoque': return handleMovimentarEstoque(params, ss);
+      case 'calcularCusto':     return handleCalcularCusto(params, ss);
+      case 'salvarPreco':       return handleSalvarPreco(params, ss);
+      case 'getPrecos':         return handleGetPrecos(ss);
+      case 'getDashboard':      return handleGetDashboard(ss);
       default:
         return jsonResponse({ ok: false, error: 'Ação desconhecida: ' + action });
     }
@@ -101,7 +106,7 @@ function definirSenha() {
 }
 
 // ── AUTENTICAÇÃO ──────────────────────────────────────────────
-function handleLogin(params) {
+function handleLogin(params, ss) {
   const senhaDigitada = params.senha || '';
   const senhaHash     = PropertiesService.getScriptProperties().getProperty(SENHA_HASH_KEY);
 
@@ -116,12 +121,12 @@ function handleLogin(params) {
     return jsonResponse({ ok: false, error: 'Senha incorreta.' });
   }
 
-  const token = criarToken();
+  const token = criarToken(ss);
   return jsonResponse({ ok: true, token, user: 'Artesã' });
 }
 
-function criarToken() {
-  const sheet  = getOrCreateSheet(SHEETS.SESSOES, ['token', 'expiry']);
+function criarToken(ss) {
+  const sheet  = getOrCreateSheet(ss, SHEETS.SESSOES, ['token', 'expiry']);
   limparSessoesExpiradas(sheet);
   const token  = Utilities.getUuid();
   const expiry = Date.now() + (7 * 24 * 60 * 60 * 1000);
@@ -140,26 +145,49 @@ function limparSessoesExpiradas(sheet) {
 
 function validarToken(token) {
   if (!token) return false;
-  const sheet = getOrCreateSheet(SHEETS.SESSOES, ['token', 'expiry']);
-  if (sheet.getLastRow() < 2) return false;
+
+  // Checa cache de token antes de bater no Sheets
+  const gasCache   = CacheService.getScriptCache();
+  const cacheKey   = 'token_' + token;
+  const cached     = gasCache.get(cacheKey);
+  if (cached === 'valid') return true;
+  if (cached === 'invalid') return false;
+
+  // Cache miss: valida no Sheets
+  const ss    = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const sheet = getOrCreateSheet(ss, SHEETS.SESSOES, ['token', 'expiry']);
+  if (sheet.getLastRow() < 2) {
+    gasCache.put(cacheKey, 'invalid', CACHE_TTL_TOKEN);
+    return false;
+  }
   const data = sheet.getRange(2, 1, sheet.getLastRow() - 1, 2).getValues();
   const now  = Date.now();
   for (let i = 0; i < data.length; i++) {
-    if (String(data[i][0]) === String(token) && Number(data[i][1]) > now) return true;
+    if (String(data[i][0]) === String(token) && Number(data[i][1]) > now) {
+      gasCache.put(cacheKey, 'valid', CACHE_TTL_TOKEN);
+      return true;
+    }
   }
+  gasCache.put(cacheKey, 'invalid', CACHE_TTL_TOKEN);
   return false;
 }
 
 // ── MATERIAIS ─────────────────────────────────────────────────
-function handleGetMateriais() {
-  const sheet = getOrCreateSheet(SHEETS.MATERIAIS,
+function handleGetMateriais(ss) {
+  const gasCache = CacheService.getScriptCache();
+  const cached   = gasCache.get('getMateriais');
+  if (cached) return jsonResponseRaw(cached);
+
+  const sheet = getOrCreateSheet(ss, SHEETS.MATERIAIS,
     ['id','nome','categoria','preco','unidade','qtd','fornecedor','obs','foto','criadoEm']);
-  return jsonResponse({ ok: true, data: sheetToObjects(sheet) });
+  const result = JSON.stringify({ ok: true, data: sheetToObjects(sheet) });
+  gasCache.put('getMateriais', result, CACHE_TTL_DADOS);
+  return jsonResponseRaw(result);
 }
 
-function handleSaveMaterial(params) {
+function handleSaveMaterial(params, ss) {
   const mat   = JSON.parse(params.data || '{}');
-  const sheet = getOrCreateSheet(SHEETS.MATERIAIS,
+  const sheet = getOrCreateSheet(ss, SHEETS.MATERIAIS,
     ['id','nome','categoria','preco','unidade','qtd','fornecedor','obs','foto','criadoEm']);
   const row   = findRowById(sheet, mat.id);
   const now   = new Date().toISOString();
@@ -168,26 +196,34 @@ function handleSaveMaterial(params) {
     row ? sheet.getRange(row, 10).getValue() : now];
   if (row) sheet.getRange(row, 1, 1, values.length).setValues([values]);
   else     sheet.appendRow(values);
+  CacheService.getScriptCache().remove('getMateriais');
   return jsonResponse({ ok: true });
 }
 
-function handleDeleteMaterial(params) {
-  const sheet = getOrCreateSheet(SHEETS.MATERIAIS, []);
+function handleDeleteMaterial(params, ss) {
+  const sheet = getOrCreateSheet(ss, SHEETS.MATERIAIS, []);
   const row   = findRowById(sheet, params.id);
   if (row) sheet.deleteRow(row);
+  CacheService.getScriptCache().remove('getMateriais');
   return jsonResponse({ ok: true });
 }
 
 // ── PEÇAS ─────────────────────────────────────────────────────
-function handleGetPecas() {
-  const sheet = getOrCreateSheet(SHEETS.PECAS,
+function handleGetPecas(ss) {
+  const gasCache = CacheService.getScriptCache();
+  const cached   = gasCache.get('getPecas');
+  if (cached) return jsonResponseRaw(cached);
+
+  const sheet = getOrCreateSheet(ss, SHEETS.PECAS,
     ['id','nome','categoria','desc','horas','valorHora','materiais','custoTotal','foto','criadoEm']);
-  return jsonResponse({ ok: true, data: sheetToObjects(sheet) });
+  const result = JSON.stringify({ ok: true, data: sheetToObjects(sheet) });
+  gasCache.put('getPecas', result, CACHE_TTL_DADOS);
+  return jsonResponseRaw(result);
 }
 
-function handleSavePeca(params) {
+function handleSavePeca(params, ss) {
   const peca  = JSON.parse(params.data || '{}');
-  const sheet = getOrCreateSheet(SHEETS.PECAS,
+  const sheet = getOrCreateSheet(ss, SHEETS.PECAS,
     ['id','nome','categoria','desc','horas','valorHora','materiais','custoTotal','foto','criadoEm']);
   const row   = findRowById(sheet, peca.id);
   const now   = new Date().toISOString();
@@ -196,36 +232,45 @@ function handleSavePeca(params) {
     peca.foto||'', row ? sheet.getRange(row, 10).getValue() : now];
   if (row) sheet.getRange(row, 1, 1, values.length).setValues([values]);
   else     sheet.appendRow(values);
+  CacheService.getScriptCache().remove('getPecas');
   return jsonResponse({ ok: true });
 }
 
-function handleDeletePeca(params) {
-  const sheet = getOrCreateSheet(SHEETS.PECAS, []);
+function handleDeletePeca(params, ss) {
+  const sheet = getOrCreateSheet(ss, SHEETS.PECAS, []);
   const row   = findRowById(sheet, params.id);
   if (row) sheet.deleteRow(row);
+  CacheService.getScriptCache().remove('getPecas');
   return jsonResponse({ ok: true });
 }
 
 // ── ESTOQUE ───────────────────────────────────────────────────
-function handleGetEstoque() {
-  const sheet = getOrCreateSheet(SHEETS.ESTOQUE,
+function handleGetEstoque(ss) {
+  const gasCache = CacheService.getScriptCache();
+  const cached   = gasCache.get('getEstoque');
+  if (cached) return jsonResponseRaw(cached);
+
+  const sheet = getOrCreateSheet(ss, SHEETS.ESTOQUE,
     ['id','tipo','materialId','quantidade','data','obs','registradoEm']);
-  return jsonResponse({ ok: true, data: sheetToObjects(sheet) });
+  const result = JSON.stringify({ ok: true, data: sheetToObjects(sheet) });
+  gasCache.put('getEstoque', result, CACHE_TTL_DADOS);
+  return jsonResponseRaw(result);
 }
 
-function handleMovimentarEstoque(params) {
+function handleMovimentarEstoque(params, ss) {
   const mov   = JSON.parse(params.data || '{}');
-  const sheet = getOrCreateSheet(SHEETS.ESTOQUE,
+  const sheet = getOrCreateSheet(ss, SHEETS.ESTOQUE,
     ['id','tipo','materialId','quantidade','data','obs','registradoEm']);
   sheet.appendRow([mov.id, mov.tipo, mov.materialId, mov.quantidade,
     mov.data, mov.obs||'', new Date().toISOString()]);
+  CacheService.getScriptCache().remove('getEstoque');
   return jsonResponse({ ok: true });
 }
 
 // ── PRECIFICAÇÃO ──────────────────────────────────────────────
-function handleCalcularCusto(params) {
-  const pecaSheet = getOrCreateSheet(SHEETS.PECAS, []);
-  const matSheet  = getOrCreateSheet(SHEETS.MATERIAIS, []);
+function handleCalcularCusto(params, ss) {
+  const pecaSheet = getOrCreateSheet(ss, SHEETS.PECAS, []);
+  const matSheet  = getOrCreateSheet(ss, SHEETS.MATERIAIS, []);
   const pecaRow   = findRowById(pecaSheet, params.pecaId);
   if (!pecaRow) return jsonResponse({ ok: false, error: 'Peça não encontrada.' });
   const peca    = rowToObject(pecaSheet, pecaRow);
@@ -236,46 +281,57 @@ function handleCalcularCusto(params) {
     const mat = allMats.find(m => m.id === item.materialId);
     if (mat) custoMats += (parseFloat(mat.preco)||0) * (parseFloat(item.quantidade)||0);
   });
-  const custoMO    = (parseFloat(peca.horas)||0) * (parseFloat(peca.valorHora)||0);
+  const custoMO = (parseFloat(peca.horas)||0) * (parseFloat(peca.valorHora)||0);
   return jsonResponse({ ok: true, custoMats, custoMO, custoTotal: custoMats + custoMO });
 }
 
-function handleSalvarPreco(params) {
+function handleSalvarPreco(params, ss) {
   const preco = JSON.parse(params.data || '{}');
-  const sheet = getOrCreateSheet(SHEETS.PRECOS,
+  const sheet = getOrCreateSheet(ss, SHEETS.PRECOS,
     ['id','pecaId','pecaNome','custoTotal','outros','margem','taxa','precoFinal','data','criadoEm']);
   sheet.appendRow([preco.id, preco.pecaId, preco.pecaNome, preco.custoTotal,
     preco.outros, preco.margem, preco.taxa, preco.precoFinal, preco.data,
     new Date().toISOString()]);
+  CacheService.getScriptCache().removeAll(['getPrecos', 'getDashboard']);
   return jsonResponse({ ok: true });
 }
 
-function handleGetPrecos() {
-  const sheet = getOrCreateSheet(SHEETS.PRECOS,
+function handleGetPrecos(ss) {
+  const gasCache = CacheService.getScriptCache();
+  const cached   = gasCache.get('getPrecos');
+  if (cached) return jsonResponseRaw(cached);
+
+  const sheet = getOrCreateSheet(ss, SHEETS.PRECOS,
     ['id','pecaId','pecaNome','custoTotal','outros','margem','taxa','precoFinal','data','criadoEm']);
-  return jsonResponse({ ok: true, data: sheetToObjects(sheet).reverse() });
+  const result = JSON.stringify({ ok: true, data: sheetToObjects(sheet).reverse() });
+  gasCache.put('getPrecos', result, CACHE_TTL_DADOS);
+  return jsonResponseRaw(result);
 }
 
 // ── DASHBOARD ─────────────────────────────────────────────────
-function handleGetDashboard() {
-  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+function handleGetDashboard(ss) {
+  const gasCache = CacheService.getScriptCache();
+  const cached   = gasCache.get('getDashboard');
+  if (cached) return jsonResponseRaw(cached);
+
   const count = (name) => {
     const s = ss.getSheetByName(name);
     return s ? Math.max(0, s.getLastRow() - 1) : 0;
   };
-  return jsonResponse({
+  const result = JSON.stringify({
     ok: true,
     materiais: count(SHEETS.MATERIAIS),
     pecas:     count(SHEETS.PECAS),
     estoque:   count(SHEETS.ESTOQUE),
     precos:    count(SHEETS.PRECOS),
   });
+  gasCache.put('getDashboard', result, CACHE_TTL_DADOS);
+  return jsonResponseRaw(result);
 }
 
 // ── HELPERS ───────────────────────────────────────────────────
-function getOrCreateSheet(name, headers) {
-  const ss    = SpreadsheetApp.openById(SPREADSHEET_ID);
-  let   sheet = ss.getSheetByName(name);
+function getOrCreateSheet(ss, name, headers) {
+  let sheet = ss.getSheetByName(name);
   if (!sheet) {
     sheet = ss.insertSheet(name);
     if (headers.length) sheet.appendRow(headers);
@@ -314,5 +370,12 @@ function findRowById(sheet, id) {
 function jsonResponse(data) {
   return ContentService
     .createTextOutput(JSON.stringify(data))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
+// Versão que evita double-stringify quando o JSON já está pronto
+function jsonResponseRaw(jsonString) {
+  return ContentService
+    .createTextOutput(jsonString)
     .setMimeType(ContentService.MimeType.JSON);
 }

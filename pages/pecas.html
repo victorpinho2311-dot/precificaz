@@ -135,7 +135,10 @@ window.PecasPage = (() => {
 
   async function carregar() {
     try {
-      const [resPecas, resMats] = await Promise.all([API.getPecas(), API.getMateriais()]);
+      const [resPecas, resMats] = await Promise.all([
+        API.getPecas(() => carregar()),
+        API.getMateriais(),
+      ]);
       pecas     = (resPecas.data || []).sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
       materiais = (resMats.data  || []).sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
       filtrado  = [...pecas];

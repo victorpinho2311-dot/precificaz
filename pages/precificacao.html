@@ -120,7 +120,10 @@ window.PrecificacaoPage = (() => {
 
   async function carregar() {
     try {
-      const [resPecas, resPrecos] = await Promise.all([API.getPecas(), API.getPrecos()]);
+      const [resPecas, resPrecos] = await Promise.all([
+        API.getPecas(() => carregar()),
+        API.getPrecos(),
+      ]);
       pecas  = resPecas.data  || [];
       precos = resPrecos.data || [];
 

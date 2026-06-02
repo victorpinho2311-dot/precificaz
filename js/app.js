@@ -5,6 +5,9 @@
 
 document.addEventListener('DOMContentLoaded', async () => {
 
+  /* ── Warmup do GAS — acorda o script antes do usuário precisar dos dados */
+  API.warmup();
+
   /* ── Service Worker ─────────────────────────────────────── */
   if ('serviceWorker' in navigator) {
     try {

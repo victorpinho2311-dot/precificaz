@@ -78,12 +78,15 @@
 
     document.getElementById('dash-user').textContent = `Bem-vindo, ${Auth.getUser()}`;
 
-    try {
-      const data = await API.getDashboard();
+    function aplicarStats(data) {
       document.getElementById('stat-materiais').textContent = data.materiais ?? '0';
       document.getElementById('stat-pecas').textContent     = data.pecas     ?? '0';
       document.getElementById('stat-estoque').textContent   = data.estoque   ?? '0';
       document.getElementById('stat-precos').textContent    = data.precos    ?? '0';
+    }
+    try {
+      const data = await API.getDashboard(aplicarStats);
+      aplicarStats(data);
     } catch {
       // stats ficam com —
     }

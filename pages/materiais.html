@@ -137,7 +137,11 @@ window.MateriaisPage = (() => {
 
   async function carregar() {
     try {
-      const res = await API.getMateriais();
+      const res = await API.getMateriais((fresh) => {
+        materiais = (fresh.data || []).sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
+        filtrado  = [...materiais];
+        renderizar();
+      });
       materiais = (res.data || []).sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
       filtrado  = [...materiais];
       renderizar();

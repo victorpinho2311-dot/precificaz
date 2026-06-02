@@ -7,7 +7,8 @@ const API = (() => {
 
   const GAS_URL = 'https://script.google.com/macros/s/AKfycbwMbbUofp6xreEi6IH6PbOHgzvsIOUgaPD-_qXioVtDKywLrKTQnOFyAWcfR0mHtK2h2g/exec';
 
-  const CACHE_TTL = 30_000; // 30 segundos
+  // Cache em memória: chave → { data, ts }
+  const CACHE_TTL = 5 * 60_000; // 5 minutos (alinhado ao CacheService do GAS)
   const _cache = {};
 
   function _cacheGet(key) {
@@ -25,12 +26,13 @@ const API = (() => {
     keys.forEach(k => delete _cache[k]);
   }
 
+  // Fila de revalidações em background para não duplicar requests simultâneos
+  const _revalidating = new Set();
+
   async function request(action, payload = {}, method = 'GET') {
     const token = (typeof Auth !== 'undefined') ? Auth.getToken() : '';
 
     try {
-      // Gravações vão por POST: fotos em base64 estouram o limite de URL do GET.
-      // O GAS executa doPost, devolve 302 e o browser segue como GET (CORS liberado).
       let res;
       if (method === 'POST') {
         const url = `${GAS_URL}?action=${encodeURIComponent(action)}&token=${encodeURIComponent(token || '')}`;
@@ -70,16 +72,41 @@ const API = (() => {
     }
   }
 
+  // Stale-while-revalidate: retorna cache imediatamente (se existir) e
+  // atualiza em background. onUpdate é chamado quando os dados frescos chegam.
+  async function _staleRequest(key, action, onUpdate) {
+    const stale = _cacheGet(key);
+
+    if (stale) {
+      // Agenda revalidação em background sem bloquear o retorno
+      if (!_revalidating.has(key)) {
+        _revalidating.add(key);
+        request(action).then(fresh => {
+          _cacheSet(key, fresh);
+          _revalidating.delete(key);
+          if (onUpdate) onUpdate(fresh);
+        }).catch(() => _revalidating.delete(key));
+      }
+      return stale;
+    }
+
+    // Sem cache: aguarda normalmente (primeira carga)
+    const fresh = await request(action);
+    _cacheSet(key, fresh);
+    return fresh;
+  }
+
+  // ── Ping de warmup — chama ao iniciar o app para acordar o GAS ──
+  function warmup() {
+    request('ping').catch(() => {}); // ignora erro — é só aquecimento
+  }
+
   async function login(senha) {
     return request('login', { senha });
   }
 
-  async function getMateriais() {
-    const cached = _cacheGet('getMateriais');
-    if (cached) return cached;
-    const res = await request('getMateriais');
-    _cacheSet('getMateriais', res);
-    return res;
+  async function getMateriais(onUpdate) {
+    return _staleRequest('getMateriais', 'getMateriais', onUpdate);
   }
   async function saveMaterial(m) {
     invalidateCache('getMateriais', 'getDashboard');
@@ -90,12 +117,8 @@ const API = (() => {
     return request('deleteMaterial', { id }, 'POST');
   }
 
-  async function getPecas() {
-    const cached = _cacheGet('getPecas');
-    if (cached) return cached;
-    const res = await request('getPecas');
-    _cacheSet('getPecas', res);
-    return res;
+  async function getPecas(onUpdate) {
+    return _staleRequest('getPecas', 'getPecas', onUpdate);
   }
   async function savePeca(p) {
     invalidateCache('getPecas', 'getDashboard');
@@ -106,40 +129,29 @@ const API = (() => {
     return request('deletePeca', { id }, 'POST');
   }
 
-  async function getEstoque() {
-    const cached = _cacheGet('getEstoque');
-    if (cached) return cached;
-    const res = await request('getEstoque');
-    _cacheSet('getEstoque', res);
-    return res;
+  async function getEstoque(onUpdate) {
+    return _staleRequest('getEstoque', 'getEstoque', onUpdate);
   }
   async function movimentarEstoque(mov) {
     invalidateCache('getEstoque', 'getDashboard');
     return request('movimentarEstoque', { data: mov }, 'POST');
   }
 
-  async function calcularCusto(pecaId)   { return request('calcularCusto', { pecaId }); }
+  async function calcularCusto(pecaId) { return request('calcularCusto', { pecaId }); }
   async function salvarPreco(pricing) {
     invalidateCache('getPrecos', 'getDashboard');
     return request('salvarPreco', { data: pricing }, 'POST');
   }
-  async function getPrecos() {
-    const cached = _cacheGet('getPrecos');
-    if (cached) return cached;
-    const res = await request('getPrecos');
-    _cacheSet('getPrecos', res);
-    return res;
+  async function getPrecos(onUpdate) {
+    return _staleRequest('getPrecos', 'getPrecos', onUpdate);
   }
 
-  async function getDashboard() {
-    const cached = _cacheGet('getDashboard');
-    if (cached) return cached;
-    const res = await request('getDashboard');
-    _cacheSet('getDashboard', res);
-    return res;
+  async function getDashboard(onUpdate) {
+    return _staleRequest('getDashboard', 'getDashboard', onUpdate);
   }
 
   return {
+    warmup,
     login,
     getMateriais, saveMaterial, deleteMaterial,
     getPecas,     savePeca,     deletePeca,

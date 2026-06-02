@@ -97,7 +97,10 @@ window.EstoquePage = (() => {
 
   async function carregar() {
     try {
-      const [resEst, resMats] = await Promise.all([API.getEstoque(), API.getMateriais()]);
+      const [resEst, resMats] = await Promise.all([
+        API.getEstoque(() => carregar()),
+        API.getMateriais(),
+      ]);
       movimentos = resEst.data  || [];
       materiais  = resMats.data || [];
       renderizar();
