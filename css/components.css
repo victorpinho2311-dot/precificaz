@@ -666,3 +666,155 @@
   margin-top: var(--space-1);
   justify-content: center;
 }
+
+/* ── PLATFORM CARDS (Precificação) ───────────────────────── */
+.plat-scroll {
+  display: flex;
+  gap: var(--space-3);
+  overflow-x: auto;
+  padding-bottom: var(--space-2);
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.plat-scroll::-webkit-scrollbar { display: none; }
+
+.plat-card {
+  flex: 0 0 160px;
+  background: var(--color-surface);
+  border: 1px solid rgba(222,216,207,0.5);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-card);
+  overflow: hidden;
+  scroll-snap-align: start;
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+}
+.plat-card:active { transform: scale(0.97); }
+
+.plat-card__header {
+  height: 6px;
+}
+
+.plat-card__body {
+  padding: var(--space-4) var(--space-4) var(--space-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.plat-logo {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  text-transform: lowercase;
+  flex-shrink: 0;
+}
+
+.plat-card__name {
+  font-size: var(--text-xs);
+  font-weight: 700;
+  color: var(--color-muted-fg);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.plat-card__price {
+  font-family: var(--font-heading);
+  font-size: var(--text-xl);
+  font-weight: 700;
+  color: var(--color-fg);
+  line-height: 1.1;
+}
+
+.plat-card__fee {
+  font-size: var(--text-xs);
+  color: var(--color-muted-fg);
+}
+
+.plat-card--invalid .plat-card__price {
+  font-size: var(--text-sm);
+  color: var(--color-destructive);
+}
+
+/* ── PLATFORM LIST ITEM (Perfil) ─────────────────────────── */
+.plat-list-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-surface);
+  border: 1px solid rgba(222,216,207,0.4);
+  border-radius: var(--radius-lg);
+  margin-bottom: var(--space-2);
+}
+
+.plat-list-item__info {
+  flex: 1;
+  min-width: 0;
+}
+
+.plat-list-item__name {
+  font-weight: 700;
+  font-size: var(--text-sm);
+}
+
+.plat-list-item__meta {
+  font-size: var(--text-xs);
+  color: var(--color-muted-fg);
+  margin-top: 2px;
+}
+
+/* ── SECTION TITLE (shared) ──────────────────────────────── */
+.section-title {
+  font-family: var(--font-heading);
+  font-size: var(--text-lg);
+  font-weight: 700;
+}
+
+.section-subtitle {
+  font-size: var(--text-xs);
+  color: var(--color-muted-fg);
+  margin-top: 2px;
+}
+
+/* ── TOGGLE SWITCH ───────────────────────────────────────── */
+.toggle {
+  position: relative;
+  width: 44px;
+  height: 26px;
+  flex-shrink: 0;
+}
+.toggle input { opacity: 0; width: 0; height: 0; }
+.toggle__track {
+  position: absolute;
+  inset: 0;
+  background: var(--color-border);
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  transition: background var(--transition-fast);
+}
+.toggle input:checked + .toggle__track {
+  background: var(--color-primary);
+}
+.toggle__thumb {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 20px;
+  height: 20px;
+  background: white;
+  border-radius: 50%;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+  transition: transform var(--transition-fast);
+  pointer-events: none;
+}
+.toggle input:checked ~ .toggle__thumb {
+  transform: translateX(18px);
+}

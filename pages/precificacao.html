@@ -1,12 +1,13 @@
 <!-- ============================================================
      PRECIFICAZ — Precificação
-     Calculadora de preço final com margem, markup e sugestão
+     Calculadora de preço final com sugestão por plataforma
      ============================================================ -->
 <div class="page-header">
   <h1 class="page-header__title">Precificação</h1>
 </div>
 
 <div class="page-content">
+
   <!-- Seleção da peça -->
   <div class="form-group" style="margin-bottom:var(--space-4);">
     <label class="form-label">Selecionar peça <span class="required">*</span></label>
@@ -15,81 +16,82 @@
     </select>
   </div>
 
-  <!-- Resultado de custo (preenchido ao selecionar) -->
+  <!-- Info da peça selecionada -->
   <div class="card" id="prec-peca-info" style="display:none;margin-bottom:var(--space-5);">
     <div style="display:flex;gap:var(--space-3);align-items:center;margin-bottom:var(--space-4);">
       <img id="prec-peca-foto" style="width:60px;height:60px;object-fit:cover;border-radius:var(--radius-md);display:none;" />
       <div>
-        <div style="font-weight:700;" id="prec-peca-nome">—</div>
+        <div style="font-weight:700;font-size:var(--text-base);" id="prec-peca-nome">—</div>
         <div style="font-size:var(--text-xs);color:var(--color-muted-fg);" id="prec-peca-cat">—</div>
       </div>
     </div>
-
     <div class="stat-grid">
       <div class="stat-card">
         <div class="stat-card__label">Custo materiais</div>
         <div class="stat-card__value" id="prec-custo-mat">R$ 0,00</div>
       </div>
       <div class="stat-card">
-        <div class="stat-card__label">Custo mão de obra</div>
+        <div class="stat-card__label">Mão de obra</div>
         <div class="stat-card__value" id="prec-custo-mao">R$ 0,00</div>
       </div>
     </div>
-    <div style="text-align:center;padding:var(--space-3) 0;">
+    <div style="text-align:center;padding:var(--space-3) 0 0;">
       <span style="font-size:var(--text-sm);color:var(--color-muted-fg);">Custo total bruto</span>
       <div style="font-family:var(--font-heading);font-size:var(--text-3xl);font-weight:700;color:var(--color-fg);" id="prec-custo-total">R$ 0,00</div>
     </div>
   </div>
 
-  <!-- Calculadora de preço -->
+  <!-- Calculadora -->
   <div class="card" id="prec-calc-card" style="display:none;margin-bottom:var(--space-5);">
-    <h3 style="font-size:var(--text-lg);margin-bottom:var(--space-4);">Calcular preço de venda</h3>
+    <h3 style="font-family:var(--font-heading);font-size:var(--text-lg);font-weight:700;margin-bottom:var(--space-4);">Calcular preço de venda</h3>
 
     <div style="display:flex;flex-direction:column;gap:var(--space-4);">
-      <!-- Custos adicionais -->
-      <div class="form-group">
-        <label class="form-label">Custos adicionais (R$)</label>
-        <input class="form-input" type="number" id="prec-outros" placeholder="Embalagem, frete..." min="0" step="0.01" value="0"
-          oninput="PrecificacaoPage.calcular()" />
-        <span class="form-hint">Embalagem, etiquetas, frete...</span>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--space-3);">
+        <div class="form-group">
+          <label class="form-label">Custos adicionais</label>
+          <input class="form-input" type="number" id="prec-outros" placeholder="R$ 0,00" min="0" step="0.01" value="0"
+            oninput="PrecificacaoPage.calcular()" />
+          <span class="form-hint">Embalagem, frete…</span>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Margem de lucro (%)</label>
+          <input class="form-input" type="number" id="prec-margem" placeholder="Ex: 30" min="0" max="500" step="1" value="30"
+            oninput="PrecificacaoPage.calcular()" />
+        </div>
       </div>
 
-      <!-- Margem de lucro -->
-      <div class="form-group">
-        <label class="form-label">Margem de lucro (%)</label>
-        <input class="form-input" type="number" id="prec-margem" placeholder="Ex: 30" min="0" max="500" step="1" value="30"
-          oninput="PrecificacaoPage.calcular()" />
-      </div>
+      <hr class="divider" style="margin:0;" />
 
-      <!-- Taxa de plataforma (opcional) -->
-      <div class="form-group">
-        <label class="form-label">Taxa de plataforma (%)</label>
-        <input class="form-input" type="number" id="prec-taxa" placeholder="Ex: 10" min="0" max="100" step="0.1" value="0"
-          oninput="PrecificacaoPage.calcular()" />
-        <span class="form-hint">Marketplace, gateway de pagamento...</span>
-      </div>
-
-      <hr class="divider" />
-
-      <!-- Resultado -->
+      <!-- Resultado base -->
       <div style="background:var(--color-muted);border-radius:var(--radius-lg);padding:var(--space-4);">
         <div style="display:flex;justify-content:space-between;margin-bottom:var(--space-2);">
           <span style="font-size:var(--text-sm);color:var(--color-muted-fg);">Custo total</span>
           <span style="font-weight:600;" id="res-custo-total">R$ 0,00</span>
         </div>
         <div style="display:flex;justify-content:space-between;margin-bottom:var(--space-2);">
-          <span style="font-size:var(--text-sm);color:var(--color-muted-fg);">Lucro</span>
+          <span style="font-size:var(--text-sm);color:var(--color-muted-fg);">Lucro esperado</span>
           <span style="font-weight:600;color:var(--color-primary);" id="res-lucro">R$ 0,00</span>
         </div>
-        <div style="display:flex;justify-content:space-between;margin-bottom:var(--space-2);">
-          <span style="font-size:var(--text-sm);color:var(--color-muted-fg);">Taxa plataforma</span>
-          <span style="font-weight:600;" id="res-taxa">R$ 0,00</span>
-        </div>
-        <hr class="divider" />
+        <hr class="divider" style="margin:var(--space-2) 0;" />
         <div style="display:flex;justify-content:space-between;align-items:center;">
-          <span style="font-weight:700;">Preço sugerido</span>
+          <span style="font-weight:700;font-size:var(--text-sm);">Preço base sugerido</span>
           <span style="font-family:var(--font-heading);font-size:var(--text-2xl);font-weight:700;color:var(--color-secondary);" id="res-preco-final">R$ 0,00</span>
         </div>
+      </div>
+
+      <!-- Sugestão por plataforma -->
+      <div id="prec-plataformas-section" style="display:none;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:var(--space-3);">
+          <div>
+            <div style="font-weight:700;font-size:var(--text-sm);">Sugestão por plataforma</div>
+            <div style="font-size:var(--text-xs);color:var(--color-muted-fg);">Preço para manter sua margem após taxas</div>
+          </div>
+          <button class="btn btn--ghost btn--sm" style="font-size:var(--text-xs);color:var(--color-muted-fg);"
+            onclick="Router.go('perfil')" title="Configurar plataformas">
+            <i data-lucide="settings-2" width="14" height="14"></i>
+          </button>
+        </div>
+        <div class="plat-scroll" id="prec-plat-scroll"></div>
       </div>
 
       <button class="btn btn--primary btn--full" onclick="PrecificacaoPage.salvarPreco()">
@@ -99,17 +101,20 @@
     </div>
   </div>
 
-  <!-- Histórico de preços salvos -->
-  <h2 style="font-size:var(--text-lg);font-weight:700;margin-bottom:var(--space-3);">Preços salvos</h2>
+  <!-- Histórico -->
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:var(--space-3);">
+    <h2 style="font-family:var(--font-heading);font-size:var(--text-lg);font-weight:700;">Preços salvos</h2>
+  </div>
   <div id="prec-historico">
     <div class="empty-state"><div class="loading-spinner"></div></div>
   </div>
+
 </div>
 
 <script>
 window.PrecificacaoPage = (() => {
-  let pecas    = [];
-  let precos   = [];
+  let pecas     = [];
+  let precos    = [];
   let pecaAtual = null;
   let custoAtual = 0;
 
@@ -148,21 +153,22 @@ window.PrecificacaoPage = (() => {
     if (!peca) return;
     pecaAtual = peca;
 
-    // Preencher info
     document.getElementById('prec-peca-nome').textContent = peca.nome;
     document.getElementById('prec-peca-cat').textContent  = peca.categoria || '';
+
     if (peca.foto) {
       const imgEl = document.getElementById('prec-peca-foto');
       imgEl.src = peca.foto;
       imgEl.style.display = 'block';
+    } else {
+      document.getElementById('prec-peca-foto').style.display = 'none';
     }
 
-    const mats   = JSON.parse(peca.materiais || '[]');
     const custoMO = (parseFloat(peca.horas) || 0) * (parseFloat(peca.valorHora) || 0);
     const custoM  = parseFloat(peca.custoTotal || 0) - custoMO;
 
-    document.getElementById('prec-custo-mat').textContent  = Utils.formatCurrency(custoM);
-    document.getElementById('prec-custo-mao').textContent  = Utils.formatCurrency(custoMO);
+    document.getElementById('prec-custo-mat').textContent   = Utils.formatCurrency(custoM);
+    document.getElementById('prec-custo-mao').textContent   = Utils.formatCurrency(custoMO);
     document.getElementById('prec-custo-total').textContent = Utils.formatCurrency(peca.custoTotal || 0);
 
     custoAtual = parseFloat(peca.custoTotal) || 0;
@@ -170,38 +176,82 @@ window.PrecificacaoPage = (() => {
     document.getElementById('prec-peca-info').style.display = 'block';
     document.getElementById('prec-calc-card').style.display = 'block';
     calcular();
+    Utils.refreshIcons();
   }
 
   function calcular() {
     if (!pecaAtual) return;
+
     const outros = parseFloat(document.getElementById('prec-outros').value) || 0;
     const margem = parseFloat(document.getElementById('prec-margem').value) || 0;
-    const taxa   = parseFloat(document.getElementById('prec-taxa').value)   || 0;
 
     const custoBase = custoAtual + outros;
-    const lucro     = custoBase * (margem / 100);
-    const subtotal  = custoBase + lucro;
-    const taxaValor = subtotal * (taxa / 100);
-    const final     = subtotal + taxaValor;
+    const divisorBase = 1 - (margem / 100);
+    const precoBase = divisorBase > 0 ? custoBase / divisorBase : 0;
+    const lucro = precoBase - custoBase;
 
     document.getElementById('res-custo-total').textContent = Utils.formatCurrency(custoBase);
     document.getElementById('res-lucro').textContent       = Utils.formatCurrency(lucro);
-    document.getElementById('res-taxa').textContent        = Utils.formatCurrency(taxaValor);
-    document.getElementById('res-preco-final').textContent = Utils.formatCurrency(final);
+    document.getElementById('res-preco-final').textContent = Utils.formatCurrency(precoBase);
+
+    renderPlataformasCards(custoAtual, outros, margem);
+  }
+
+  function renderPlataformasCards(custo, outros, margem) {
+    const plats  = Utils.getPlataformas().filter(p => p.ativo);
+    const scroll = document.getElementById('prec-plat-scroll');
+    const section = document.getElementById('prec-plataformas-section');
+
+    if (!plats.length) { section.style.display = 'none'; return; }
+    section.style.display = 'block';
+
+    scroll.innerHTML = plats.map(p => {
+      const preco = Utils.calcularPrecoPlataforma(custo, outros, margem, p);
+      const invalido = preco === null;
+
+      const feeLabel = p.comissao > 0
+        ? `${p.comissao}% comissão${p.taxaFixa > 0 ? ` + ${Utils.formatCurrency(p.taxaFixa)}` : ''}`
+        : p.taxaFixa > 0
+          ? `Taxa fixa ${Utils.formatCurrency(p.taxaFixa)}`
+          : 'Sem taxas configuradas';
+
+      return `
+        <div class="plat-card${invalido ? ' plat-card--invalid' : ''}">
+          <div class="plat-card__header" style="background:${p.cor};"></div>
+          <div class="plat-card__body">
+            <div style="display:flex;align-items:center;gap:var(--space-2);">
+              <div class="plat-logo" style="background:${p.cor};color:${p.corTexto};width:32px;height:32px;font-size:var(--text-xs);">${Utils.escapeHtml(p.icone || p.nome.slice(0,2))}</div>
+              <div class="plat-card__name">${Utils.escapeHtml(p.nome)}</div>
+            </div>
+            <div class="plat-card__price">
+              ${invalido ? 'Margem inviável' : Utils.formatCurrency(preco)}
+            </div>
+            <div class="plat-card__fee">${feeLabel}</div>
+          </div>
+        </div>
+      `;
+    }).join('');
   }
 
   async function salvarPreco() {
     if (!pecaAtual) return;
+
+    const outros = parseFloat(document.getElementById('prec-outros').value) || 0;
+    const margem = parseFloat(document.getElementById('prec-margem').value) || 0;
+    const custoBase = custoAtual + outros;
+    const divisor = 1 - (margem / 100);
+    const precoFinal = divisor > 0 ? custoBase / divisor : 0;
+
     const priceData = {
-      id:          Utils.uid(),
-      pecaId:      pecaAtual.id,
-      pecaNome:    pecaAtual.nome,
-      custoTotal:  custoAtual,
-      outros:      parseFloat(document.getElementById('prec-outros').value) || 0,
-      margem:      parseFloat(document.getElementById('prec-margem').value) || 0,
-      taxa:        parseFloat(document.getElementById('prec-taxa').value)   || 0,
-      precoFinal:  Utils.parseCurrency(document.getElementById('res-preco-final').textContent),
-      data:        new Date().toISOString().split('T')[0],
+      id:         Utils.uid(),
+      pecaId:     pecaAtual.id,
+      pecaNome:   pecaAtual.nome,
+      custoTotal: custoAtual,
+      outros,
+      margem,
+      taxa:       0,
+      precoFinal,
+      data:       new Date().toISOString().split('T')[0],
     };
 
     try {

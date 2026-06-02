@@ -159,6 +159,50 @@ const Utils = (() => {
     localStorage.setItem(`pz_cat_${tipo}`, JSON.stringify(lista));
   }
 
+  /* ── Plataformas de Venda (localStorage) ────────────────── */
+  const PLATAFORMAS_DEFAULTS = [
+    {
+      id: 'enjoei',
+      nome: 'Enjoei',
+      cor: '#FF6B2B',
+      corTexto: '#FFFFFF',
+      icone: 'ej',
+      comissao: 0,
+      taxaFixa: 0,
+      ativo: true,
+    },
+    {
+      id: 'elo7',
+      nome: 'Elo7',
+      cor: '#00A68A',
+      corTexto: '#FFFFFF',
+      icone: 'e7',
+      comissao: 0,
+      taxaFixa: 0,
+      ativo: true,
+    },
+  ];
+
+  function getPlataformas() {
+    try {
+      const saved = JSON.parse(localStorage.getItem('pz_plataformas'));
+      return Array.isArray(saved) ? saved : JSON.parse(JSON.stringify(PLATAFORMAS_DEFAULTS));
+    } catch {
+      return JSON.parse(JSON.stringify(PLATAFORMAS_DEFAULTS));
+    }
+  }
+
+  function setPlataformas(lista) {
+    localStorage.setItem('pz_plataformas', JSON.stringify(lista));
+  }
+
+  function calcularPrecoPlataforma(custo, outros, margem, plataforma) {
+    const base = custo + outros + (parseFloat(plataforma.taxaFixa) || 0);
+    const divisor = 1 - (margem / 100) - ((parseFloat(plataforma.comissao) || 0) / 100);
+    if (divisor <= 0) return null;
+    return base / divisor;
+  }
+
   /* ── Número para unidade de medida ─────────────────────── */
   const UNIDADES = {
     metro:     'm',
@@ -195,5 +239,8 @@ const Utils = (() => {
     UNIDADES,
     getCategorias,
     setCategorias,
+    getPlataformas,
+    setPlataformas,
+    calcularPrecoPlataforma,
   };
 })();

@@ -1,6 +1,6 @@
 <!-- ============================================================
      PRECIFICAZ — Perfil
-     Configurações e gerenciamento de categorias
+     Configurações, categorias e plataformas de venda
      ============================================================ -->
 <div class="page-header">
   <h1 class="page-header__title">Perfil</h1>
@@ -8,12 +8,29 @@
 
 <div class="page-content">
 
-  <!-- Categorias de Materiais -->
+  <!-- ── Plataformas de Venda ─────────────────────────────── -->
   <div style="margin-bottom:var(--space-6);">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:var(--space-3);">
       <div>
-        <div style="font-family:var(--font-heading);font-size:var(--text-lg);font-weight:700;">Categorias de Materiais</div>
-        <div style="font-size:var(--text-xs);color:var(--color-muted-fg);margin-top:2px;">Usadas no cadastro de insumos</div>
+        <div class="section-title">Plataformas de Venda</div>
+        <div class="section-subtitle">Taxas usadas no cálculo de preço</div>
+      </div>
+      <button class="btn btn--primary btn--sm" onclick="PerfilPage.novaPlataforma()">
+        <i data-lucide="plus" width="16" height="16"></i>
+        Adicionar
+      </button>
+    </div>
+    <div id="plat-lista"></div>
+  </div>
+
+  <hr class="divider" />
+
+  <!-- ── Categorias de Materiais ──────────────────────────── -->
+  <div style="margin-bottom:var(--space-6);">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:var(--space-3);">
+      <div>
+        <div class="section-title">Categorias de Materiais</div>
+        <div class="section-subtitle">Usadas no cadastro de insumos</div>
       </div>
       <button class="btn btn--outline btn--sm" onclick="PerfilPage.novaCategoria('materiais')">
         <i data-lucide="plus" width="16" height="16"></i>
@@ -25,12 +42,12 @@
 
   <hr class="divider" />
 
-  <!-- Categorias de Peças -->
+  <!-- ── Categorias de Peças ──────────────────────────────── -->
   <div style="margin-bottom:var(--space-6);">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:var(--space-3);">
       <div>
-        <div style="font-family:var(--font-heading);font-size:var(--text-lg);font-weight:700;">Categorias de Peças</div>
-        <div style="font-size:var(--text-xs);color:var(--color-muted-fg);margin-top:2px;">Usadas no cadastro de produtos</div>
+        <div class="section-title">Categorias de Peças</div>
+        <div class="section-subtitle">Usadas no cadastro de produtos</div>
       </div>
       <button class="btn btn--outline btn--sm" onclick="PerfilPage.novaCategoria('pecas')">
         <i data-lucide="plus" width="16" height="16"></i>
@@ -42,7 +59,62 @@
 
 </div>
 
-<!-- Modal editar/criar categoria -->
+<!-- ── Modal Plataforma ─────────────────────────────────── -->
+<div class="modal-backdrop" id="plat-modal">
+  <div class="modal">
+    <div class="modal__handle"></div>
+    <div class="modal__header">
+      <h2 class="modal__title" id="plat-modal-title">Nova Plataforma</h2>
+      <button class="btn btn--ghost btn--sm" onclick="PerfilPage.fecharModalPlat()">
+        <i data-lucide="x" width="20" height="20"></i>
+      </button>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:var(--space-4);">
+
+      <div class="form-group">
+        <label class="form-label">Nome <span class="required">*</span></label>
+        <input class="form-input" type="text" id="plat-nome" placeholder="Ex: Shopee" />
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--space-3);">
+        <div class="form-group">
+          <label class="form-label">Comissão (%)</label>
+          <input class="form-input" type="number" id="plat-comissao" placeholder="0" min="0" max="100" step="0.1" value="0" />
+          <span class="form-hint">% sobre o preço</span>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Taxa fixa (R$)</label>
+          <input class="form-input" type="number" id="plat-taxa-fixa" placeholder="0,00" min="0" step="0.01" value="0" />
+          <span class="form-hint">Por venda</span>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Cor da plataforma</label>
+        <div style="display:flex;align-items:center;gap:var(--space-3);">
+          <input type="color" id="plat-cor" value="#5D7052"
+            style="width:48px;height:48px;border:none;border-radius:var(--radius-md);cursor:pointer;background:none;padding:0;"
+            oninput="PerfilPage.previewCor(this.value)" />
+          <div style="flex:1;">
+            <div id="plat-logo-preview" style="display:inline-flex;align-items:center;gap:var(--space-2);">
+              <div class="plat-logo" id="plat-logo-box" style="background:#5D7052;color:#fff;">px</div>
+              <span style="font-size:var(--text-sm);color:var(--color-muted-fg);" id="plat-preview-nome">Nome</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <input type="hidden" id="plat-id" />
+
+      <button type="button" class="btn btn--primary btn--full" onclick="PerfilPage.salvarPlataforma()">
+        <i data-lucide="save" width="18" height="18"></i>
+        Salvar plataforma
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Modal Categoria ──────────────────────────────────── -->
 <div class="modal-backdrop" id="cat-modal">
   <div class="modal">
     <div class="modal__handle"></div>
@@ -76,10 +148,152 @@ window.PerfilPage = (() => {
   }, { once: true });
 
   function renderizar() {
+    renderPlataformas();
     renderLista('materiais');
     renderLista('pecas');
     Utils.refreshIcons();
   }
+
+  /* ── Plataformas ─────────────────────────────────────────── */
+
+  function renderPlataformas() {
+    const el = document.getElementById('plat-lista');
+    if (!el) return;
+    const plats = Utils.getPlataformas();
+
+    if (!plats.length) {
+      el.innerHTML = `<div style="color:var(--color-muted-fg);font-size:var(--text-sm);padding:var(--space-3) var(--space-4);background:var(--color-surface);border-radius:var(--radius-lg);border:1px solid var(--color-border);">Nenhuma plataforma cadastrada</div>`;
+      return;
+    }
+
+    el.innerHTML = plats.map((p, i) => `
+      <div class="plat-list-item">
+        <div class="plat-logo" style="background:${p.cor};color:${p.corTexto};">${Utils.escapeHtml(p.icone || p.nome.slice(0,2))}</div>
+        <div class="plat-list-item__info">
+          <div class="plat-list-item__name">${Utils.escapeHtml(p.nome)}</div>
+          <div class="plat-list-item__meta">
+            ${p.comissao > 0 ? `Comissão: ${p.comissao}%` : 'Sem comissão'}
+            ${p.taxaFixa > 0 ? ` · Taxa fixa: ${Utils.formatCurrency(p.taxaFixa)}` : ''}
+          </div>
+        </div>
+        <label class="toggle" title="${p.ativo ? 'Ativo' : 'Inativo'}">
+          <input type="checkbox" ${p.ativo ? 'checked' : ''} onchange="PerfilPage.togglePlataforma(${i}, this.checked)" />
+          <div class="toggle__track"></div>
+          <div class="toggle__thumb"></div>
+        </label>
+        <button class="btn btn--ghost btn--sm" style="color:var(--color-muted-fg);padding:0 var(--space-2);"
+          onclick="PerfilPage.editarPlataforma(${i})">
+          <i data-lucide="edit-2" width="16" height="16"></i>
+        </button>
+        <button class="btn btn--ghost btn--sm" style="color:var(--color-destructive);padding:0 var(--space-2);"
+          onclick="PerfilPage.removerPlataforma(${i})">
+          <i data-lucide="trash-2" width="16" height="16"></i>
+        </button>
+      </div>
+    `).join('');
+
+    Utils.refreshIcons();
+  }
+
+  function novaPlataforma() {
+    document.getElementById('plat-modal-title').textContent = 'Nova Plataforma';
+    document.getElementById('plat-id').value     = '';
+    document.getElementById('plat-nome').value   = '';
+    document.getElementById('plat-comissao').value = '0';
+    document.getElementById('plat-taxa-fixa').value = '0';
+    document.getElementById('plat-cor').value    = '#5D7052';
+    previewCor('#5D7052');
+    document.getElementById('plat-preview-nome').textContent = 'Nome';
+    document.getElementById('plat-modal').classList.add('open');
+    Utils.refreshIcons();
+    setTimeout(() => document.getElementById('plat-nome').focus(), 320);
+
+    document.getElementById('plat-nome').oninput = function() {
+      const v = this.value.trim();
+      document.getElementById('plat-logo-box').textContent = v.slice(0,2).toLowerCase() || 'px';
+      document.getElementById('plat-preview-nome').textContent = v || 'Nome';
+    };
+  }
+
+  function editarPlataforma(idx) {
+    const plats = Utils.getPlataformas();
+    const p = plats[idx];
+    document.getElementById('plat-modal-title').textContent = 'Editar Plataforma';
+    document.getElementById('plat-id').value       = String(idx);
+    document.getElementById('plat-nome').value     = p.nome;
+    document.getElementById('plat-comissao').value = p.comissao;
+    document.getElementById('plat-taxa-fixa').value = p.taxaFixa;
+    document.getElementById('plat-cor').value      = p.cor;
+    previewCor(p.cor);
+    document.getElementById('plat-logo-box').textContent = p.icone || p.nome.slice(0,2).toLowerCase();
+    document.getElementById('plat-preview-nome').textContent = p.nome;
+    document.getElementById('plat-modal').classList.add('open');
+    Utils.refreshIcons();
+
+    document.getElementById('plat-nome').oninput = function() {
+      const v = this.value.trim();
+      document.getElementById('plat-logo-box').textContent = v.slice(0,2).toLowerCase() || 'px';
+      document.getElementById('plat-preview-nome').textContent = v || 'Nome';
+    };
+  }
+
+  function previewCor(cor) {
+    document.getElementById('plat-logo-box').style.background = cor;
+  }
+
+  function fecharModalPlat() {
+    document.getElementById('plat-modal').classList.remove('open');
+  }
+
+  function salvarPlataforma() {
+    const nome = document.getElementById('plat-nome').value.trim();
+    if (!nome) { Utils.toast('Digite o nome da plataforma.', 'error'); return; }
+
+    const plats  = Utils.getPlataformas();
+    const idx    = document.getElementById('plat-id').value;
+    const cor    = document.getElementById('plat-cor').value;
+    const icone  = nome.slice(0, 2).toLowerCase();
+
+    const obj = {
+      id:       idx !== '' ? plats[parseInt(idx)].id : Utils.uid(),
+      nome,
+      cor,
+      corTexto: '#FFFFFF',
+      icone,
+      comissao: parseFloat(document.getElementById('plat-comissao').value) || 0,
+      taxaFixa: parseFloat(document.getElementById('plat-taxa-fixa').value) || 0,
+      ativo:    idx !== '' ? plats[parseInt(idx)].ativo : true,
+    };
+
+    if (idx !== '') {
+      plats[parseInt(idx)] = obj;
+    } else {
+      plats.push(obj);
+    }
+
+    Utils.setPlataformas(plats);
+    fecharModalPlat();
+    renderPlataformas();
+    Utils.toast('Plataforma salva!', 'success');
+  }
+
+  function togglePlataforma(idx, ativo) {
+    const plats = Utils.getPlataformas();
+    plats[idx].ativo = ativo;
+    Utils.setPlataformas(plats);
+    renderPlataformas();
+  }
+
+  function removerPlataforma(idx) {
+    const plats = Utils.getPlataformas();
+    if (!confirm(`Remover "${plats[idx].nome}"?`)) return;
+    plats.splice(idx, 1);
+    Utils.setPlataformas(plats);
+    renderPlataformas();
+    Utils.toast('Plataforma removida.', 'success');
+  }
+
+  /* ── Categorias ──────────────────────────────────────────── */
 
   function renderLista(tipo) {
     const elId = tipo === 'materiais' ? 'cat-mat-lista' : 'cat-pec-lista';
@@ -171,6 +385,6 @@ window.PerfilPage = (() => {
     Utils.toast('Categoria removida.', 'success');
   }
 
-  return { novaCategoria, editar, fecharModal, salvar, remover };
+  return { novaPlataforma, editarPlataforma, previewCor, fecharModalPlat, salvarPlataforma, togglePlataforma, removerPlataforma, novaCategoria, editar, fecharModal, salvar, remover };
 })();
 </script>
