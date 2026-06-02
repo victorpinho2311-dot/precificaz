@@ -336,8 +336,11 @@ window.PecasPage = (() => {
 
   function renderMatsPeca() {
     const container = document.getElementById('peca-mat-lista');
-    container.innerHTML = matsPeca.map((item, i) => `
-      <div style="display:grid;grid-template-columns:1fr auto auto;gap:var(--space-2);align-items:center;">
+    container.innerHTML = matsPeca.map((item, i) => {
+      const mat = materiais.find(m => m.id === item.materialId);
+      const custoLinha = mat ? (parseFloat(mat.preco) || 0) * (parseFloat(item.quantidade) || 0) : 0;
+      return `
+      <div style="display:grid;grid-template-columns:1fr auto auto auto;gap:var(--space-2);align-items:center;">
         <select class="form-select" style="border-radius:var(--radius-lg);"
           onchange="PecasPage.updateMat(${i}, 'materialId', this.value)">
           <option value="">Selecionar material...</option>
@@ -349,13 +352,14 @@ window.PecasPage = (() => {
         </select>
         <input class="form-input" type="number" placeholder="Qtd" min="0" step="0.01"
           value="${item.quantidade}"
-          style="width:80px;border-radius:var(--radius-lg);"
+          style="width:72px;border-radius:var(--radius-lg);"
           onchange="PecasPage.updateMat(${i}, 'quantidade', this.value)" />
+        <span style="font-size:var(--text-sm);font-weight:600;color:var(--color-primary);white-space:nowrap;min-width:64px;text-align:right;">${Utils.formatCurrency(custoLinha)}</span>
         <button type="button" class="btn btn--ghost btn--sm" onclick="PecasPage.removerMaterial(${i})">
           <i data-lucide="trash-2" width="16" height="16" style="color:var(--color-destructive);"></i>
         </button>
       </div>
-    `).join('');
+    `}).join('');
 
     Utils.refreshIcons();
     recalcularCusto();
